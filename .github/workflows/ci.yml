@@ -115,6 +115,54 @@ jobs:
               console.log("Published HTTP port responds after recreation.");
             '
 
+      - name: Verify password-protected display access
+        run: |
+          docker compose exec -T family-hub node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { randomBytes } from 'node:crypto';
+          import { readFile, writeFile } from 'node:fs/promises';
+          const base = 'http://127.0.0.1:3000';
+          const password = randomBytes(32).toString('hex');
+          const setup = await fetch(base + '/api/auth/password', {
+            method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ newPassword: password }),
+          });
+          assert.equal(setup.status, 200, 'Parent password can be set');
+          const cookie = setup.headers.get('set-cookie')?.split(';')[0];
+          assert.ok(cookie, 'Parent session cookie issued');
+          const tokenResponse = await fetch(base + '/api/auth/display-token', { headers: { Cookie: cookie } });
+          assert.equal(tokenResponse.status, 200);
+          const { displayToken } = await tokenResponse.json();
+          assert.ok(displayToken, 'Authorized parent receives display token');
+          const config = JSON.parse(await readFile('/app/data/config.json', 'utf8'));
+          const marker = 'https://example.invalid/private-calendar-fixture.ics';
+          config.settings.calendar.icalSources = [{
+            id: 'privacy-fixture', name: 'Private fixture', url: marker, enabled: true, color: '#60a5fa',
+          }];
+          await writeFile('/app/data/config.json', JSON.stringify(config, null, 2) + '\n');
+
+          for (const route of ['/display', '/display/privacy-fixture']) {
+            for (const suffix of ['', '?token=invalid', '?token=' + displayToken + '&token=invalid']) {
+              const denied = await fetch(base + route + suffix, { redirect: 'manual' });
+              assert.ok([302, 303, 307, 308, 401, 403].includes(denied.status), 'Unauthorized display request denied');
+              const body = await denied.text();
+              // Next may reflect a caller-supplied query in router metadata.
+              // A caller who did not supply the token must never receive it.
+              if (!suffix.includes(displayToken)) assert.ok(!body.includes(displayToken), 'Stored token is not disclosed');
+              assert.ok(!body.includes(marker), 'Denied response contains no private calendar URL');
+            }
+            for (const mode of ['token', 'session']) {
+              const allowed = await fetch(base + route + (mode === 'token' ? '?token=' + displayToken : ''), {
+                redirect: 'manual', headers: mode === 'session' ? { Cookie: cookie } : {},
+              });
+              assert.equal(allowed.status, 200, 'Valid display or parent credential accepted');
+            }
+          }
+          const configDenied = await fetch(base + '/api/config');
+          assert.equal(configDenied.status, 401, 'Private configuration still requires authentication');
+          console.log('Anonymous/invalid display access denied; valid kiosk and parent access passed.');
+          NODE
+
       - name: Show failure diagnostics
         if: failure()
         run: |

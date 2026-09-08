@@ -24,3 +24,5 @@ Tests from the upstream project remain alongside tests for these changes. Househ
 The Android access method was informed by [dinewby88/SkylightMaxCalendarADB](https://github.com/dinewby88/SkylightMaxCalendarADB), which documents a System UI crash-dialog route on Skylight hardware. The guide in this repository distinguishes what was observed on one 150-CAL from steps that may differ on other firmware.
 
 The upstream marketing-site statistics test is omitted along with the marketing site it validates. Application tests remain.
+
+Display-page security correction: both display routes now authenticate before returning private configuration or display tokens.

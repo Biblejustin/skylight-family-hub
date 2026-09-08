@@ -370,6 +370,25 @@ describe('proxy — auth enabled: editor pages require authentication', () => {
   });
 });
 
+describe('proxy — display pages', () => {
+  for (const pathname of ['/display', '/display/wall']) {
+    it(`redirects an anonymous ${pathname} before rendering when auth is enabled`, async () => {
+      const proxy = await loadProxyWithAuth('enabled');
+      expect(isRedirect(proxy(makeRequest(pathname)))).toEqual({ pathname: '/login', from: pathname });
+    });
+
+    it(`passes query credentials on ${pathname} to server-side validation`, async () => {
+      const proxy = await loadProxyWithAuth('enabled');
+      expect(isPassThrough(proxy(makeRequest(pathname, { search: '?token=must-be-validated' })))).toBe(true);
+    });
+
+    it(`leaves ${pathname} accessible on a fresh password-free installation`, async () => {
+      const proxy = await loadProxyWithAuth('disabled');
+      expect(isPassThrough(proxy(makeRequest(pathname)))).toBe(true);
+    });
+  }
+});
+
 describe('proxy — auth enabled: API write operations require authentication', () => {
   let proxy: ProxyFn;
 

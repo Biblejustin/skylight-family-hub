@@ -299,12 +299,13 @@ export async function requireSession(request: Request): Promise<void> {
 }
 
 /**
- * Validates either a session cookie OR a display Bearer token.
+ * Validates either a session cookie OR a display Bearer token. Display pages
+ * and /api/display/* also accept a query token for saved kiosk/phone links.
  * No-op when auth is disabled. Throws a 401 Response when auth is enabled
  * and neither credential is valid.
  */
 export async function requireDisplayAuth(request: Request, clientIp?: string): Promise<void> {
-  let state = await getCachedAuthState();
+  const state = await getCachedAuthState();
   if (!state.passwordHash) return; // auth disabled
 
   // IP bypass: trusted IPs skip display auth entirely
@@ -313,13 +314,8 @@ export async function requireDisplayAuth(request: Request, clientIp?: string): P
     if (isIpAllowed(clientIp, state.ipAllowlist)) return;
   }
 
-  // Auto-migrate: generate display token for existing installations that
-  // enabled auth before the display token feature was added.
-  if (!state.displayToken) {
-    await regenerateDisplayToken();
-    state = await readAuthState();
-    cachedState = { state, at: Date.now() };
-  }
+  // Validation must not create credentials for an unauthenticated request.
+  // Authorized callers can use getDisplayToken() to migrate legacy state.
 
   function tokenMatches(candidate: string): boolean {
     if (!state.displayToken) return false;
@@ -336,14 +332,12 @@ export async function requireDisplayAuth(request: Request, clientIp?: string): P
     return; // valid display token
   }
 
-  // Try query param token — restricted to /api/display/* for phone bookmarks only.
-  // Bearer header is the primary auth method; query tokens are a convenience for
-  // bookmarkable GET commands (wake/sleep/reload) and are limited in scope to avoid
-  // credential leakage through browser history, logs, and referrer headers.
+  // Limit query credentials to display pages and existing phone commands.
+  // Other APIs still require a Bearer header or parent session cookie.
   const url = new URL(request.url);
-  if (url.pathname.startsWith('/api/display/')) {
-    const queryToken = url.searchParams.get('token');
-    if (queryToken && tokenMatches(queryToken)) {
+  if (url.pathname === '/display' || url.pathname.startsWith('/display/') || url.pathname.startsWith('/api/display/')) {
+    const queryTokens = url.searchParams.getAll('token');
+    if (queryTokens.length === 1 && tokenMatches(queryTokens[0])) {
       return; // valid display token via query param
     }
   }

@@ -1,5 +1,6 @@
 import { readConfig } from '@/lib/config';
 import { getDisplayToken } from '@/lib/auth';
+import { requireDisplayPageAuth } from '@/lib/display-page-auth';
 import { filterConfigForDisplay, findMainDisplay } from '@/lib/display-filter';
 import ScreenRotator from '@/components/display/ScreenRotator';
 import DisplayNotFound from '@/components/display/DisplayNotFound';
@@ -27,7 +28,10 @@ export default async function DisplayPage({
 }: {
   searchParams: Promise<DisplaySearchParams>;
 }) {
-  const [config, displayToken, preview] = await Promise.all([readConfig(), getDisplayToken(), searchParams.then(parseDisplaySearchParams)]);
+  const query = await searchParams;
+  await requireDisplayPageAuth('/display', query);
+  const [config, displayToken] = await Promise.all([readConfig(), getDisplayToken()]);
+  const preview = parseDisplaySearchParams(query);
 
   const availableDisplays = config.displays?.map((d) => ({ id: d.id, name: d.name })) ?? [];
 

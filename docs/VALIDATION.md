@@ -5,7 +5,7 @@ Publication preparation: September 7, 2026 (America/Chicago).
 ## Clean public source
 
 - Fresh `npm ci` from the committed package lock passed on macOS.
-- All **8,234 tests across 509 Vitest files passed**.
+- All **8,258 tests across 510 Vitest files passed**.
 - ESLint passed.
 - Next.js production build and its TypeScript check passed. The upstream application still emits 20 dynamic filesystem tracing warnings; this publication does not claim to eliminate them.
 - Empty setup validated: three screens, no calendar sources, requested timezone, restrictive data/config permissions, and exact preservation of an existing configuration.
@@ -36,3 +36,9 @@ Docker was unavailable on the preparation Mac; Linux verification ran in GitHub 
 Before retiring another host, verify the actual NAS build, startup, volume permissions, login, calendar sources, photo rendering, migrated balances, and container restart persistence. Then verify Skylight with the laptop disconnected. Firmware differences and other NAS architectures require their own checks.
 
 The refactored public AOA command was not rerun on hardware during publication. The existing display already had ADB enabled; the guide clearly separates that untested refactor from the successful original input sequence.
+
+## Display-page authentication correction
+
+Both display page routes now check real credentials before returning private configuration. Anonymous requests and invalid tokens redirect to login; an existing kiosk token or parent session succeeds. Tests cover missing/forged/duplicate credentials, revoked sessions, disabled authentication, and legacy auth state without a display token. Authorization no longer creates credentials for an unauthenticated caller.
+
+The corrected build was also installed on the already configured display host and checked over HTTP: unauthenticated responses disclose neither stored credentials nor feed URLs, existing authorized URLs still work, and configuration, auth state, chores, completion/balance records, and rewards remain byte-identical. Physical display reload succeeded.

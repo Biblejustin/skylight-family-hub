@@ -374,9 +374,34 @@ describe('requireDisplayAuth', () => {
     clearAuthCache();
     const token = await getDisplayToken();
 
-    // Query param token is only accepted on /api/display/* paths
+    // Phone commands retain their existing query-token support.
     const request = new Request(`http://localhost/api/display/wake?token=${token}`);
     await expect(requireDisplayAuth(request)).resolves.toBeUndefined();
+  });
+
+  it.each(['/display', '/display/wall'])('accepts a saved kiosk token on %s', async (pathname) => {
+    await setPassword('testpassword123');
+    const token = await getDisplayToken();
+    await expect(requireDisplayAuth(new Request(`http://localhost${pathname}?token=${token}`)))
+      .resolves.toBeUndefined();
+  });
+
+  it('rejects duplicate query credentials rather than choosing one', async () => {
+    await setPassword('testpassword123');
+    const token = await getDisplayToken();
+    await expect(requireDisplayAuth(new Request(`http://localhost/display?token=${token}&token=wrong`)))
+      .rejects.toMatchObject({ status: 401 });
+  });
+
+  it('does not create a legacy display credential while rejecting an anonymous request', async () => {
+    const file = path.join(tmpCwd, 'data', 'auth.json');
+    const existing = JSON.stringify({ passwordHash: 'hash', salt: 'salt', cookieSecret: 'secret' });
+    await fs.writeFile(file, existing);
+    clearAuthCache();
+
+    await expect(requireDisplayAuth(new Request('http://localhost/display')))
+      .rejects.toMatchObject({ status: 401 });
+    expect(await fs.readFile(file, 'utf8')).toBe(existing);
   });
 
   it('rejects a valid query param token on a non-display path', async () => {

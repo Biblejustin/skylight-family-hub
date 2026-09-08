@@ -195,6 +195,10 @@ function isProtectedRoute(pathname: string, method: string): boolean {
   // Editor and remote pages — always protected
   if (pathname.startsWith('/editor') || pathname.startsWith('/remote')) return true;
 
+  // Display server components validate the actual token/session before reading
+  // private configuration. This early gate catches requests with no credential.
+  if (pathname === '/display' || pathname.startsWith('/display/')) return true;
+
   // API write operations — protected (except public auth routes, display-accessible
   // POSTs, and the LAN-public kid-view POSTs the /chores route depends on)
   if (pathname.startsWith('/api/') && ['PUT', 'POST', 'DELETE'].includes(method)) {

@@ -1,5 +1,6 @@
 import { readConfig } from '@/lib/config';
 import { getDisplayToken } from '@/lib/auth';
+import { requireDisplayPageAuth } from '@/lib/display-page-auth';
 import { filterConfigForDisplay } from '@/lib/display-filter';
 import ScreenRotator from '@/components/display/ScreenRotator';
 import DisplayNotFound from '@/components/display/DisplayNotFound';
@@ -29,8 +30,10 @@ export default async function DisplayPage({
   params: Promise<{ displayId: string }>;
   searchParams: Promise<DisplaySearchParams>;
 }) {
-  const { displayId } = await params;
-  const [config, displayToken, preview] = await Promise.all([readConfig(), getDisplayToken(), searchParams.then(parseDisplaySearchParams)]);
+  const [{ displayId }, query] = await Promise.all([params, searchParams]);
+  await requireDisplayPageAuth(`/display/${encodeURIComponent(displayId)}`, query);
+  const [config, displayToken] = await Promise.all([readConfig(), getDisplayToken()]);
+  const preview = parseDisplaySearchParams(query);
 
   const filtered = filterConfigForDisplay(config, displayId);
   if (!filtered) {

@@ -24,3 +24,7 @@ Keep complete private backups before updating or migrating. Do not run two writa
 ## Reporting
 
 Do not include personal data or working credentials in public issues. Provide a minimal example with invented people/events and redacted URLs. If a secret was published, rotate it at its provider; deleting the latest file alone does not remove Git history.
+
+## Display page authentication
+
+With a parent password enabled, both `/display` and `/display/<id>` require a valid display token or parent session before returning private configuration or display credentials. Empty installations remain open until a password is set. Earlier versions inherited an upstream page route that rendered credentials without authenticating the visitor; update existing deployments to the corrected version. A trusted LAN remains the deployment boundary.
