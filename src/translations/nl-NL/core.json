@@ -1,0 +1,210 @@
+{
+  "today": "Vandaag",
+  "tomorrow": "Morgen",
+  "yesterday": "Gisteren",
+  "loading": "Laden…",
+  "actions": {
+    "cancel": "Annuleren",
+    "delete": "Verwijderen",
+    "remove": "Verwijderen",
+    "add": "Toevoegen",
+    "close": "Sluiten",
+    "back": "Terug",
+    "confirm": "Bevestigen",
+    "save": "Opslaan",
+    "done": "Klaar",
+    "edit": "Bewerken",
+    "clear": "Leegmaken",
+    "settings": "Instellingen",
+    "name": "Naam",
+    "color": "Kleur",
+    "icon": "Pictogram",
+    "label": "Label"
+  },
+  "status": {
+    "saving": "Opslaan…",
+    "connected": "Verbonden",
+    "disabled": "Uitgeschakeld",
+    "never": "Nooit",
+    "none": "Geen"
+  },
+  "relativeTime": {
+    "justNow": "zojuist",
+    "secondsAgo": "{n} sec geleden",
+    "minutesAgo": "{n} min geleden",
+    "hoursAgo": "{n} uur geleden",
+    "daysAgo": "{n} d geleden",
+    "weeksAgo": "{n} w geleden"
+  },
+  "emptyDisplay": {
+    "eyebrow": "Home Screens",
+    "headline": "Nog niets op dit scherm",
+    "body": "Open op een telefoon of computer in je thuisnetwerk",
+    "hideHint": "Liever een leeg scherm? Instellingen › Scherm › Deze tip tonen"
+  },
+  "pagination": {
+    "paused": "Gepauzeerd",
+    "previousScreen": "Vorig scherm",
+    "nextScreen": "Volgend scherm",
+    "resumesIn": "Gaat verder over {time} · tik om nu verder te gaan",
+    "tapToResume": "tik om verder te gaan",
+    "minutes": "{count} min",
+    "seconds": "{count} sec"
+  },
+  "displayNotFound": {
+    "notRegistered": "Display nog niet toegevoegd",
+    "adoptionLine1": "Deze display is verbonden met Home Screens maar is nog niet toegevoegd.",
+    "adoptionLine2": "Open de editor op de hoofd-Pi, ga naar",
+    "settingsLink": "Instellingen → Displays",
+    "andClick": "en klik op",
+    "adoptLabel": "Toevoegen",
+    "nextTo": "naast",
+    "waitingForAdoption": "Wachten op toevoeging…",
+    "recoveryNotice": "Deze display is nog niet ingesteld, je andere displays wel. Over {seconds} s wordt overgeschakeld naar de hoofddisplay.",
+    "goToDefault": "Nu naar de hoofddisplay"
+  },
+  "login": {
+    "checkingAuth": "Authenticatie controleren…",
+    "ipBlocked": "Dit apparaat mag niet inloggen",
+    "enterPasswordToContinue": "Voer je wachtwoord in om door te gaan",
+    "accessRestricted": "Toegang beperkt",
+    "accessRestrictedDescription": "Home Screens accepteert alleen verbindingen van bepaalde apparaten, en dit apparaat staat niet op de lijst. Inloggen helpt niet. Vraag degene die Home Screens heeft ingesteld om dit apparaat toe te voegen, of probeer het op een apparaat dat al is toegestaan.",
+    "passwordPlaceholder": "Wachtwoord",
+    "rememberMe": "90 dagen ingelogd blijven",
+    "signingIn": "Aanmelden…",
+    "unlock": "Ontgrendelen",
+    "loading": "Laden…",
+    "backToDisplay": "Terug naar display",
+    "loginFailed": "Aanmelden mislukt",
+    "unreachable": "Home Screens is niet bereikbaar",
+    "errors": {
+      "wrongPassword": "Dat wachtwoord klopt niet.",
+      "tooManyTries": {
+        "one": "Te veel pogingen. Wacht {count} minuut en probeer het dan opnieuw.",
+        "other": "Te veel pogingen. Wacht {count} minuten en probeer het dan opnieuw."
+      }
+    },
+    "forgotPassword": {
+      "link": "Wachtwoord vergeten?",
+      "title": "Wachtwoord opnieuw instellen",
+      "body": "Wie dit apparaat heeft ingesteld, kan het wachtwoord wissen. Voer dit uit op het apparaat zelf (met een toetsenbord eraan) of vanaf een andere computer in een terminal:",
+      "fallback": "Bestaat die opdracht niet, dan doet het verwijderen van het bestand {file} in de Home Screens-map hetzelfde.",
+      "after": "Home Screens opent daarna zonder wachtwoord en je kunt in de instellingen een nieuw wachtwoord kiezen."
+    }
+  },
+  "errors": {
+    "fetchFailed": "Kon geen verbinding maken om deze gegevens te laden",
+    "loadImagesFailed": "Afbeeldingen konden niet worden geladen",
+    "uploadFailed": "Uploaden mislukt",
+    "createFolderFailed": "Map kon niet worden aangemaakt",
+    "deleteFolderFailed": "Map kon niet worden verwijderd",
+    "deleteImageFailed": "Foto kon niet worden verwijderd",
+    "googleExpired": "Je Google-verbinding is verlopen. Log opnieuw in.",
+    "deviceFlowFailed": "Apparaataanmelding kon niet worden gestart",
+    "codeExpired": "Code verlopen. Probeer het opnieuw.",
+    "authorizationFailed": "Autorisatie mislukt",
+    "startSignInFailed": "Aanmelding kon niet worden gestart"
+  },
+  "days": {
+    "sunday": "Zondag",
+    "monday": "Maandag",
+    "tuesday": "Dinsdag",
+    "wednesday": "Woensdag",
+    "thursday": "Donderdag",
+    "friday": "Vrijdag",
+    "saturday": "Zaterdag"
+  },
+  "meal": {
+    "difficulty": {
+      "easy": "Makkelijk",
+      "medium": "Gemiddeld",
+      "hard": "Moeilijk"
+    },
+    "tags": {
+      "breakfast": "Ontbijt",
+      "lunch": "Lunch",
+      "dinner": "Avondeten",
+      "snack": "Tussendoortje",
+      "quick": "Snel",
+      "healthy": "Gezond",
+      "vegetarian": "Vegetarisch",
+      "vegan": "Veganistisch",
+      "comfort": "Comfort",
+      "spicy": "Pittig",
+      "kid-friendly": "Kindvriendelijk",
+      "meal-prep": "Mealprep",
+      "gluten-free": "Glutenvrij",
+      "dairy-free": "Lactosevrij",
+      "batch-cook": "Batch-koken"
+    },
+    "ingredientCategories": {
+      "produce": "Groente & fruit",
+      "dairy": "Zuivel",
+      "meat": "Vlees",
+      "seafood": "Vis & zeevruchten",
+      "bakery": "Bakkerij",
+      "pantry": "Voorraadkast",
+      "frozen": "Diepvries",
+      "beverages": "Dranken",
+      "other": "Overig"
+    },
+    "grocery": {
+      "categoryLabels": {
+        "produce": "Groente & fruit",
+        "dairy": "Zuivel & eieren",
+        "meat": "Vlees & vis",
+        "seafood": "Vlees & vis",
+        "bakery": "Bakkerij",
+        "pantry": "Voorraadkast",
+        "frozen": "Diepvries",
+        "beverages": "Dranken",
+        "other": "Overig"
+      }
+    }
+  },
+  "timer": {
+    "stepCount": "Stap {current} van {total}",
+    "quickName": "Timer van {minutes} minuten",
+    "almostDone": "Bijna klaar!",
+    "done": "Klaar!",
+    "paused": "Gepauzeerd",
+    "allDone": "Alles klaar!",
+    "timesUp": "De tijd is om!",
+    "finished": "{name} is klaar",
+    "stepsDone": "stappen gedaan",
+    "totalTime": "totale tijd",
+    "nextUp": "Hierna:",
+    "minutesShort": "{minutes} min",
+    "moreSteps": "+{count} meer",
+    "progressWords": "{done} gedaan · {left} te gaan",
+    "quickNameSeconds": "Timer van {seconds} seconden",
+    "quickNameClock": "Timer van {time}"
+  },
+  "launcher": {
+    "heading": "Waar wil je heen?",
+    "remote": {
+      "title": "Gezinsafstandsbediening",
+      "body": "Klusjes, maaltijden, timers en de schermen"
+    },
+    "chores": {
+      "title": "Klusjes van de kinderen",
+      "body": "De klusjes van vandaag afvinken"
+    },
+    "display": {
+      "title": "Scherm",
+      "body": "Zien wat er aan de muur staat"
+    },
+    "editor": {
+      "title": "Editor",
+      "body": "Ontwerp je schermen. Werkt het beste op een laptop of computer."
+    },
+    "editorAddressHint": "Open dit adres op een laptop om je schermen te ontwerpen:",
+    "editorAddressLabel": "Adres van de editor",
+    "copy": "Kopiëren",
+    "copied": "Gekopieerd",
+    "openEditor": "Editor openen"
+  },
+  "alerts": {
+    "dismiss": "Sluiten"
+  }
+}

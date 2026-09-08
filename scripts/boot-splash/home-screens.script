@@ -1,0 +1,85 @@
+# Home Screens — Plymouth boot splash
+# Logo + two-tone title on dark background with pulsing dot spinner.
+# Positions are recalculated each frame to handle resolution changes during boot.
+
+# --- Background ---
+Window.SetBackgroundTopColor(0.067, 0.067, 0.098);
+Window.SetBackgroundBottomColor(0.039, 0.039, 0.059);
+
+# --- Create images (once) ---
+logo_image = Image("logo.png");
+logo_sprite = Sprite(logo_image);
+logo_sprite.SetOpacity(1);
+
+home_image = Image.Text("HOME", 0.404, 0.910, 0.976, 0.9, "Sans Bold 20");
+screens_image = Image.Text("Screens", 0.98, 0.98, 0.98, 1, "Sans Bold 22");
+home_sprite = Sprite(home_image);
+screens_sprite = Sprite(screens_image);
+
+num_dots = 3;
+gap = 16;
+title_gap = 10;
+
+dot_base = Image("dot.png");
+for (i = 0; i < num_dots; i++) {
+  dot_image[i] = dot_base;
+  dot_sprite[i] = Sprite(dot_image[i]);
+  dot_sprite[i].SetOpacity(0.3);
+}
+
+# --- Animation + positioning ---
+tick = 0;
+last_w = 0;
+last_h = 0;
+
+fun refresh_callback() {
+  tick++;
+
+  # Re-center everything if the screen resolution changed
+  sw = Window.GetWidth();
+  sh = Window.GetHeight();
+  if (sw != last_w || sh != last_h) {
+    last_w = sw;
+    last_h = sh;
+
+    # Logo centered, shifted up slightly
+    logo_sprite.SetX(sw / 2 - logo_image.GetWidth() / 2);
+    logo_sprite.SetY(sh / 2 - logo_image.GetHeight() / 2 - 40);
+
+    # Title below logo
+    total_title_w = home_image.GetWidth() + title_gap + screens_image.GetWidth();
+    title_y = sh / 2 + logo_image.GetHeight() / 2 - 24;
+
+    home_sprite.SetX(sw / 2 - total_title_w / 2);
+    home_sprite.SetY(title_y);
+    screens_sprite.SetX(sw / 2 - total_title_w / 2 + home_image.GetWidth() + title_gap);
+    screens_sprite.SetY(title_y);
+
+    # Dots below title
+    total_dot_w = num_dots * dot_image[0].GetWidth() + (num_dots - 1) * gap;
+    dot_y = title_y + screens_image.GetHeight() + 20;
+    for (i = 0; i < num_dots; i++) {
+      dot_sprite[i].SetX(sw / 2 - total_dot_w / 2 + i * (dot_image[0].GetWidth() + gap));
+      dot_sprite[i].SetY(dot_y);
+    }
+  }
+
+  # Pulsing dot animation
+  for (i = 0; i < num_dots; i++) {
+    phase = tick * 0.06 - i * 1.2;
+    opacity = 0.2 + (1 + Math.Sin(phase)) / 2 * 0.7;
+    dot_sprite[i].SetOpacity(opacity);
+  }
+}
+
+Plymouth.SetRefreshFunction(refresh_callback);
+
+# --- Suppress boot messages (kiosk mode) ---
+fun message_callback(text) {}
+Plymouth.SetMessageFunction(message_callback);
+
+fun display_password_callback(prompt, bullets) {}
+Plymouth.SetDisplayPasswordFunction(display_password_callback);
+
+fun display_question_callback(prompt, entry) {}
+Plymouth.SetDisplayQuestionFunction(display_question_callback);

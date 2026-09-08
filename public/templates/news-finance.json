@@ -1,0 +1,99 @@
+{
+  "_type": "home-screens-layout",
+  "_version": 1,
+  "metadata": {
+    "name": "News & Finance",
+    "description": "Stay informed with news headlines, stock market tickers, and cryptocurrency prices",
+    "exportedAt": "2026-01-01T00:00:00.000Z",
+    "configVersion": 10,
+    "sourceDisplay": { "width": 1080, "height": 1920 },
+    "screenCount": 1,
+    "moduleCount": 3
+  },
+  "visual": {
+    "rotationIntervalMs": 30000,
+    "transitionEffect": "fade",
+    "transitionDuration": 0.6
+  },
+  "screens": [
+    {
+      "id": "tpl-newsfi-s1",
+      "name": "News & Finance",
+      "backgroundImage": "",
+      "modules": [
+        {
+          "id": "tpl-newsfi-m1",
+          "type": "news",
+          "position": { "x": 20, "y": 20 },
+          "size": { "w": 1040, "h": 620 },
+          "zIndex": 1,
+          "config": {
+            "feeds": [
+              { "id": "tpl-newsfi-m1-feed-1", "url": "https://feeds.bbci.co.uk/news/rss.xml", "label": "BBC News" }
+            ],
+            "view": "headline",
+            "refreshIntervalMs": 300000,
+            "rotateIntervalMs": 6000,
+            "maxItems": 15,
+            "showTimestamp": true,
+            "showDescription": false
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-newsfi-m2",
+          "type": "stock-ticker",
+          "position": { "x": 20, "y": 660 },
+          "size": { "w": 1040, "h": 640 },
+          "zIndex": 1,
+          "config": {
+            "symbols": "AAPL,GOOGL,MSFT,AMZN,META,NVDA",
+            "refreshIntervalMs": 300000,
+            "view": "table"
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-newsfi-m3",
+          "type": "crypto",
+          "position": { "x": 20, "y": 1320 },
+          "size": { "w": 1040, "h": 580 },
+          "zIndex": 1,
+          "config": {
+            "ids": "bitcoin,ethereum,solana",
+            "refreshIntervalMs": 300000,
+            "view": "cards"
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        }
+      ]
+    }
+  ]
+}

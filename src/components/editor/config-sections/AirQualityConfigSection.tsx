@@ -1,0 +1,29 @@
+'use client';
+
+import Toggle from '@/components/ui/Toggle';
+import RefreshIntervalSlider from './RefreshIntervalSlider';
+import { useModuleConfig } from '@/hooks/useModuleConfig';
+import { useTranslate } from '@/i18n';
+import type { ModuleInstance } from '@/types/config';
+
+export function AirQualityConfigSection({ mod, screenId }: { mod: ModuleInstance; screenId: string }) {
+  const t = useTranslate('editor');
+  const { config: c, set } = useModuleConfig<{ showAQI?: boolean; showPollutants?: boolean; refreshIntervalMs?: number }>(mod, screenId);
+
+  return (
+    <>
+      <Toggle label={t('configSections.air-quality.showAQI')} checked={c.showAQI !== false} onChange={(v) => set({ showAQI: v })} />
+      <Toggle label={t('configSections.air-quality.showPollutants')} checked={!!c.showPollutants} onChange={(v) => set({ showPollutants: v })} />
+      <RefreshIntervalSlider
+        value={c.refreshIntervalMs}
+        onChange={(ms) => set({ refreshIntervalMs: ms })}
+        fetchKey="air-quality"
+        fallbackMs={300_000}
+        unit="minutes"
+        min={5}
+        max={120}
+        step={5}
+      />
+    </>
+  );
+}

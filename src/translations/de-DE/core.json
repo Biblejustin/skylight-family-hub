@@ -1,0 +1,210 @@
+{
+  "today": "Heute",
+  "tomorrow": "Morgen",
+  "yesterday": "Gestern",
+  "loading": "Lädt…",
+  "actions": {
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "remove": "Entfernen",
+    "add": "Hinzufügen",
+    "close": "Schließen",
+    "back": "Zurück",
+    "confirm": "Bestätigen",
+    "save": "Speichern",
+    "done": "Fertig",
+    "edit": "Bearbeiten",
+    "clear": "Leeren",
+    "settings": "Einstellungen",
+    "name": "Name",
+    "color": "Farbe",
+    "icon": "Symbol",
+    "label": "Beschriftung"
+  },
+  "status": {
+    "saving": "Speichert…",
+    "connected": "Verbunden",
+    "disabled": "Deaktiviert",
+    "never": "Nie",
+    "none": "Keine"
+  },
+  "relativeTime": {
+    "justNow": "gerade eben",
+    "secondsAgo": "vor {n} Sek.",
+    "minutesAgo": "vor {n} Min.",
+    "hoursAgo": "vor {n} Std.",
+    "daysAgo": "vor {n} T.",
+    "weeksAgo": "vor {n} W."
+  },
+  "emptyDisplay": {
+    "eyebrow": "Home Screens",
+    "headline": "Auf diesem Bildschirm ist noch nichts",
+    "body": "Öffne auf einem Handy oder Computer in deinem WLAN",
+    "hideHint": "Lieber ein leerer Bildschirm? Einstellungen › Bildschirm › Diesen Hinweis anzeigen"
+  },
+  "pagination": {
+    "paused": "Pausiert",
+    "previousScreen": "Vorheriger Bildschirm",
+    "nextScreen": "Nächster Bildschirm",
+    "resumesIn": "Geht in {time} weiter · zum Fortsetzen tippen",
+    "tapToResume": "zum Fortsetzen tippen",
+    "minutes": "{count} Min.",
+    "seconds": "{count} Sek."
+  },
+  "displayNotFound": {
+    "notRegistered": "Display noch nicht hinzugefügt",
+    "adoptionLine1": "Dieses Display ist mit Home Screens verbunden, wurde aber noch nicht hinzugefügt.",
+    "adoptionLine2": "Öffne den Editor auf dem Haupt-Pi, gehe zu",
+    "settingsLink": "Einstellungen → Displays",
+    "andClick": "und klicke",
+    "adoptLabel": "Hinzufügen",
+    "nextTo": "neben",
+    "waitingForAdoption": "Warte auf das Hinzufügen…",
+    "recoveryNotice": "Dieses Display ist noch nicht eingerichtet, deine anderen Displays schon. Wechsel zum Haupt-Display in {seconds}s.",
+    "goToDefault": "Jetzt zum Haupt-Display wechseln"
+  },
+  "login": {
+    "checkingAuth": "Authentifizierung wird geprüft…",
+    "ipBlocked": "Dieses Gerät darf sich nicht anmelden",
+    "enterPasswordToContinue": "Gib dein Passwort ein, um fortzufahren",
+    "accessRestricted": "Zugang eingeschränkt",
+    "accessRestrictedDescription": "Home Screens nimmt nur Verbindungen von bestimmten Geräten an, und dieses steht nicht auf der Liste. Anmelden hilft nicht. Bitte die Person, die Home Screens eingerichtet hat, dieses Gerät hinzuzufügen, oder versuche es von einem Gerät, das schon erlaubt ist.",
+    "passwordPlaceholder": "Passwort",
+    "rememberMe": "90 Tage angemeldet bleiben",
+    "signingIn": "Anmeldung läuft…",
+    "unlock": "Entsperren",
+    "loading": "Wird geladen…",
+    "backToDisplay": "Zurück zum Display",
+    "loginFailed": "Anmeldung fehlgeschlagen",
+    "unreachable": "Home Screens ist nicht erreichbar",
+    "errors": {
+      "wrongPassword": "Dieses Passwort stimmt nicht.",
+      "tooManyTries": {
+        "one": "Zu viele Versuche. Warte {count} Minute und versuche es dann noch einmal.",
+        "other": "Zu viele Versuche. Warte {count} Minuten und versuche es dann noch einmal."
+      }
+    },
+    "forgotPassword": {
+      "link": "Passwort vergessen?",
+      "title": "Passwort zurücksetzen",
+      "body": "Wer dieses Gerät eingerichtet hat, kann das Passwort löschen. Führe das direkt am Gerät (mit angeschlossener Tastatur) oder von einem anderen Computer im Terminal aus:",
+      "fallback": "Falls es diesen Befehl nicht gibt: Die Datei {file} im Home-Screens-Ordner zu löschen bewirkt dasselbe.",
+      "after": "Home Screens öffnet sich danach ohne Passwort, und du kannst in den Einstellungen ein neues festlegen."
+    }
+  },
+  "errors": {
+    "fetchFailed": "Verbindung zum Laden der Daten fehlgeschlagen",
+    "loadImagesFailed": "Bilder konnten nicht geladen werden",
+    "uploadFailed": "Upload fehlgeschlagen",
+    "createFolderFailed": "Ordner konnte nicht erstellt werden",
+    "deleteFolderFailed": "Ordner konnte nicht gelöscht werden",
+    "deleteImageFailed": "Foto konnte nicht gelöscht werden",
+    "googleExpired": "Deine Google-Verbindung ist abgelaufen. Bitte melde dich erneut an.",
+    "deviceFlowFailed": "Geräte-Anmeldung konnte nicht gestartet werden",
+    "codeExpired": "Code abgelaufen. Bitte erneut versuchen.",
+    "authorizationFailed": "Autorisierung fehlgeschlagen",
+    "startSignInFailed": "Anmeldung konnte nicht gestartet werden"
+  },
+  "days": {
+    "sunday": "Sonntag",
+    "monday": "Montag",
+    "tuesday": "Dienstag",
+    "wednesday": "Mittwoch",
+    "thursday": "Donnerstag",
+    "friday": "Freitag",
+    "saturday": "Samstag"
+  },
+  "meal": {
+    "difficulty": {
+      "easy": "Einfach",
+      "medium": "Mittel",
+      "hard": "Schwer"
+    },
+    "tags": {
+      "breakfast": "Frühstück",
+      "lunch": "Mittagessen",
+      "dinner": "Abendessen",
+      "snack": "Snack",
+      "quick": "Schnell",
+      "healthy": "Gesund",
+      "vegetarian": "Vegetarisch",
+      "vegan": "Vegan",
+      "comfort": "Wohlfühlessen",
+      "spicy": "Scharf",
+      "kid-friendly": "Kinderfreundlich",
+      "meal-prep": "Meal-Prep",
+      "gluten-free": "Glutenfrei",
+      "dairy-free": "Laktosefrei",
+      "batch-cook": "Vorratskochen"
+    },
+    "ingredientCategories": {
+      "produce": "Obst & Gemüse",
+      "dairy": "Milchprodukte",
+      "meat": "Fleisch",
+      "seafood": "Meeresfrüchte",
+      "bakery": "Backwaren",
+      "pantry": "Vorrat",
+      "frozen": "Tiefkühl",
+      "beverages": "Getränke",
+      "other": "Sonstiges"
+    },
+    "grocery": {
+      "categoryLabels": {
+        "produce": "Obst & Gemüse",
+        "dairy": "Milch & Eier",
+        "meat": "Fleisch & Fisch",
+        "seafood": "Fleisch & Fisch",
+        "bakery": "Backwaren",
+        "pantry": "Vorrat",
+        "frozen": "Tiefkühl",
+        "beverages": "Getränke",
+        "other": "Sonstiges"
+      }
+    }
+  },
+  "timer": {
+    "stepCount": "Schritt {current} von {total}",
+    "quickName": "{minutes}-Minuten-Timer",
+    "almostDone": "Fast geschafft!",
+    "done": "Fertig!",
+    "paused": "Pause",
+    "allDone": "Alles geschafft!",
+    "timesUp": "Die Zeit ist um!",
+    "finished": "{name} geschafft",
+    "stepsDone": "Schritte geschafft",
+    "totalTime": "Gesamtzeit",
+    "nextUp": "Als Nächstes:",
+    "minutesShort": "{minutes} Min.",
+    "moreSteps": "+{count} weitere",
+    "progressWords": "{done} geschafft · {left} übrig",
+    "quickNameSeconds": "{seconds}-Sekunden-Timer",
+    "quickNameClock": "{time}-Timer"
+  },
+  "launcher": {
+    "heading": "Wohin möchtest du?",
+    "remote": {
+      "title": "Familien-Fernbedienung",
+      "body": "Aufgaben, Mahlzeiten, Timer und die Displays"
+    },
+    "chores": {
+      "title": "Aufgaben der Kinder",
+      "body": "Die heutigen Aufgaben abhaken"
+    },
+    "display": {
+      "title": "Display",
+      "body": "Zeigt, was an der Wand zu sehen ist"
+    },
+    "editor": {
+      "title": "Editor",
+      "body": "Gestalte deine Bildschirme. Am besten am Laptop oder Desktop."
+    },
+    "editorAddressHint": "Öffne diese Adresse auf einem Laptop, um deine Bildschirme zu gestalten:",
+    "editorAddressLabel": "Adresse des Editors",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "openEditor": "Editor öffnen"
+  },
+  "alerts": {
+    "dismiss": "Schließen"
+  }
+}

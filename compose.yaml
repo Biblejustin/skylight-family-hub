@@ -1,0 +1,40 @@
+name: family-hub
+
+services:
+  family-hub:
+    image: family-hub:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    init: true
+    user: "1000:1000"
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      HOSTNAME: "0.0.0.0"
+      PORT: "3000"
+      TZ: "${TZ:-America/Chicago}"
+    ports:
+      - "${HUB_BIND_ADDRESS:-0.0.0.0}:${HUB_PORT:-3000}:3000"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=256m,mode=1777
+      - /app/.next/cache:rw,nosuid,nodev,size=128m,uid=1000,gid=1000,mode=0700
+    volumes:
+      - hub-data:/app/data
+      - hub-backgrounds:/app/public/backgrounds
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  hub-data:
+  hub-backgrounds:

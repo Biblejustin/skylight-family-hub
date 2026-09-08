@@ -1,0 +1,75 @@
+{
+  "_type": "home-screens-layout",
+  "_version": 1,
+  "metadata": {
+    "name": "Sports Hub",
+    "description": "Live sports scoreboards and league standings for the ultimate sports fan display",
+    "exportedAt": "2026-01-01T00:00:00.000Z",
+    "configVersion": 10,
+    "sourceDisplay": { "width": 1920, "height": 1080 },
+    "screenCount": 1,
+    "moduleCount": 2
+  },
+  "visual": {
+    "rotationIntervalMs": 30000,
+    "transitionEffect": "fade",
+    "transitionDuration": 0.6
+  },
+  "screens": [
+    {
+      "id": "tpl-sports-ls-s1",
+      "name": "Sports Hub",
+      "backgroundImage": "",
+      "modules": [
+        {
+          "id": "tpl-sports-ls-m1",
+          "type": "sports",
+          "position": { "x": 20, "y": 20 },
+          "size": { "w": 1120, "h": 1040 },
+          "zIndex": 1,
+          "config": {
+            "view": "scoreboard",
+            "leagues": ["nfl", "nba", "mlb"],
+            "refreshIntervalMs": 60000
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-sports-ls-m2",
+          "type": "standings",
+          "position": { "x": 1160, "y": 20 },
+          "size": { "w": 740, "h": 1040 },
+          "zIndex": 1,
+          "config": {
+            "view": "table",
+            "league": "nba",
+            "grouping": "conference",
+            "teamsToShow": 8,
+            "showPlayoffLine": true,
+            "rotationIntervalMs": 10000,
+            "refreshIntervalMs": 3600000
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        }
+      ]
+    }
+  ]
+}

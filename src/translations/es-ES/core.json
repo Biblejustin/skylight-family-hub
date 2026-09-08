@@ -1,0 +1,210 @@
+{
+  "today": "Hoy",
+  "tomorrow": "Mañana",
+  "yesterday": "Ayer",
+  "loading": "Cargando…",
+  "actions": {
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "remove": "Quitar",
+    "add": "Añadir",
+    "close": "Cerrar",
+    "back": "Atrás",
+    "confirm": "Confirmar",
+    "save": "Guardar",
+    "done": "Hecho",
+    "edit": "Editar",
+    "clear": "Vaciar",
+    "settings": "Ajustes",
+    "name": "Nombre",
+    "color": "Color",
+    "icon": "Icono",
+    "label": "Etiqueta"
+  },
+  "status": {
+    "saving": "Guardando…",
+    "connected": "Conectado",
+    "disabled": "Desactivada",
+    "never": "Nunca",
+    "none": "Ninguno"
+  },
+  "relativeTime": {
+    "justNow": "ahora mismo",
+    "secondsAgo": "hace {n} s",
+    "minutesAgo": "hace {n} min",
+    "hoursAgo": "hace {n} h",
+    "daysAgo": "hace {n} d",
+    "weeksAgo": "hace {n} sem"
+  },
+  "emptyDisplay": {
+    "eyebrow": "Home Screens",
+    "headline": "Aún no hay nada en esta pantalla",
+    "body": "En un móvil u ordenador conectado a tu wifi, abre",
+    "hideHint": "¿Prefieres una pantalla en blanco? Ajustes › Pantalla › Mostrar este aviso"
+  },
+  "pagination": {
+    "paused": "En pausa",
+    "previousScreen": "Pantalla anterior",
+    "nextScreen": "Pantalla siguiente",
+    "resumesIn": "Continúa en {time} · toca para continuar",
+    "tapToResume": "toca para continuar",
+    "minutes": "{count} min",
+    "seconds": "{count} s"
+  },
+  "displayNotFound": {
+    "notRegistered": "Pantalla aún no añadida",
+    "adoptionLine1": "Esta pantalla está conectada a Home Screens pero aún no se ha añadido.",
+    "adoptionLine2": "Abre el editor en la Pi principal, ve a",
+    "settingsLink": "Ajustes → Pantallas",
+    "andClick": "y haz clic en",
+    "adoptLabel": "Añadir",
+    "nextTo": "junto a",
+    "waitingForAdoption": "Esperando a que se añada…",
+    "recoveryNotice": "Esta pantalla aún no está configurada, pero las otras sí. Cambiando a la pantalla principal en {seconds} s.",
+    "goToDefault": "Ir a la pantalla principal ahora"
+  },
+  "login": {
+    "checkingAuth": "Comprobando autenticación…",
+    "ipBlocked": "Este dispositivo no puede iniciar sesión",
+    "enterPasswordToContinue": "Introduce tu contraseña para continuar",
+    "accessRestricted": "Acceso restringido",
+    "accessRestrictedDescription": "Home Screens solo acepta conexiones desde ciertos dispositivos y este no está en la lista. Iniciar sesión no servirá de nada. Pídele a quien configuró Home Screens que añada este dispositivo, o inténtalo desde uno que ya esté permitido.",
+    "passwordPlaceholder": "Contraseña",
+    "rememberMe": "Recuérdame durante 90 días",
+    "signingIn": "Iniciando sesión…",
+    "unlock": "Desbloquear",
+    "loading": "Cargando…",
+    "backToDisplay": "Volver a la pantalla",
+    "loginFailed": "Error al iniciar sesión",
+    "unreachable": "No se puede conectar con Home Screens",
+    "errors": {
+      "wrongPassword": "Esa contraseña no es correcta.",
+      "tooManyTries": {
+        "one": "Demasiados intentos. Espera {count} minuto y vuelve a probar.",
+        "other": "Demasiados intentos. Espera {count} minutos y vuelve a probar."
+      }
+    },
+    "forgotPassword": {
+      "link": "¿Has olvidado la contraseña?",
+      "title": "Restablecer la contraseña",
+      "body": "Quien configuró este dispositivo puede borrar la contraseña. En el propio dispositivo (con un teclado conectado) o desde otro ordenador en un terminal, ejecuta:",
+      "fallback": "Si ese comando no existe, borrar el archivo {file} de la carpeta de Home Screens hace lo mismo.",
+      "after": "Después Home Screens se abre sin contraseña y puedes poner una nueva en los ajustes."
+    }
+  },
+  "errors": {
+    "fetchFailed": "No se pudo conectar para cargar estos datos",
+    "loadImagesFailed": "Error al cargar las imágenes",
+    "uploadFailed": "Error al subir",
+    "createFolderFailed": "Error al crear la carpeta",
+    "deleteFolderFailed": "Error al eliminar la carpeta",
+    "deleteImageFailed": "Error al eliminar la foto",
+    "googleExpired": "Tu conexión con Google ha expirado. Vuelve a iniciar sesión.",
+    "deviceFlowFailed": "Error al iniciar el flujo del dispositivo",
+    "codeExpired": "Código caducado. Inténtalo de nuevo.",
+    "authorizationFailed": "Error de autorización",
+    "startSignInFailed": "No se pudo iniciar la sesión"
+  },
+  "days": {
+    "sunday": "Domingo",
+    "monday": "Lunes",
+    "tuesday": "Martes",
+    "wednesday": "Miércoles",
+    "thursday": "Jueves",
+    "friday": "Viernes",
+    "saturday": "Sábado"
+  },
+  "meal": {
+    "difficulty": {
+      "easy": "Fácil",
+      "medium": "Media",
+      "hard": "Difícil"
+    },
+    "tags": {
+      "breakfast": "Desayuno",
+      "lunch": "Comida",
+      "dinner": "Cena",
+      "snack": "Merienda",
+      "quick": "Rápida",
+      "healthy": "Saludable",
+      "vegetarian": "Vegetariana",
+      "vegan": "Vegana",
+      "comfort": "Reconfortante",
+      "spicy": "Picante",
+      "kid-friendly": "Para niños",
+      "meal-prep": "Meal-prep",
+      "gluten-free": "Sin gluten",
+      "dairy-free": "Sin lácteos",
+      "batch-cook": "Cocinar en lote"
+    },
+    "ingredientCategories": {
+      "produce": "Frutas y verduras",
+      "dairy": "Lácteos",
+      "meat": "Carne",
+      "seafood": "Pescado y marisco",
+      "bakery": "Panadería",
+      "pantry": "Despensa",
+      "frozen": "Congelados",
+      "beverages": "Bebidas",
+      "other": "Otros"
+    },
+    "grocery": {
+      "categoryLabels": {
+        "produce": "Frutas y verduras",
+        "dairy": "Lácteos y huevos",
+        "meat": "Carne y pescado",
+        "seafood": "Carne y pescado",
+        "bakery": "Panadería",
+        "pantry": "Despensa",
+        "frozen": "Congelados",
+        "beverages": "Bebidas",
+        "other": "Otros"
+      }
+    }
+  },
+  "timer": {
+    "stepCount": "Paso {current} de {total}",
+    "quickName": "Temporizador de {minutes} minutos",
+    "almostDone": "¡Casi listo!",
+    "done": "¡Hecho!",
+    "paused": "En pausa",
+    "allDone": "¡Todo listo!",
+    "timesUp": "¡Se acabó el tiempo!",
+    "finished": "{name} terminado",
+    "stepsDone": "pasos hechos",
+    "totalTime": "tiempo total",
+    "nextUp": "Siguiente:",
+    "minutesShort": "{minutes} min",
+    "moreSteps": "+{count} más",
+    "progressWords": "{done} hechos · {left} por hacer",
+    "quickNameSeconds": "Temporizador de {seconds} segundos",
+    "quickNameClock": "Temporizador de {time}"
+  },
+  "launcher": {
+    "heading": "¿A dónde quieres ir?",
+    "remote": {
+      "title": "Mando familiar",
+      "body": "Tareas, comidas, temporizadores y las pantallas"
+    },
+    "chores": {
+      "title": "Tareas de los niños",
+      "body": "Marcar las tareas de hoy"
+    },
+    "display": {
+      "title": "Pantalla",
+      "body": "Ver lo que muestra la pared"
+    },
+    "editor": {
+      "title": "Editor",
+      "body": "Diseña tus pantallas. Funciona mejor en un portátil o un ordenador."
+    },
+    "editorAddressHint": "Abre esta dirección en un portátil para diseñar tus pantallas:",
+    "editorAddressLabel": "Dirección del editor",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "openEditor": "Abrir el editor"
+  },
+  "alerts": {
+    "dismiss": "Descartar"
+  }
+}

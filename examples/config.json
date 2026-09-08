@@ -1,0 +1,189 @@
+{
+  "version": 10,
+  "settings": {
+    "displayWidth": 1920,
+    "displayHeight": 1080,
+    "displayTransform": "normal",
+    "timezone": "America/Chicago",
+    "locale": "en-US",
+    "telemetryEnabled": false,
+    "rotationIntervalMs": 30000,
+    "latitude": 0,
+    "longitude": 0,
+    "calendar": {
+      "googleCalendarId": "",
+      "googleCalendarIds": [],
+      "icalSources": [],
+      "daysAhead": 7
+    }
+  },
+  "screens": [
+    {
+      "id": "calendar",
+      "name": "Calendar",
+      "backgroundImage": "",
+      "rotationDurationMs": 0,
+      "modules": [
+        {
+          "id": "calendar-module",
+          "type": "fullscreen-calendar",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "size": {
+            "w": 1920,
+            "h": 1080
+          },
+          "zIndex": 1,
+          "config": {
+            "view": "schedule",
+            "density": "cozy",
+            "typographySize": "medium",
+            "accentColor": "",
+            "dimPastEvents": true,
+            "shadeWeekends": true,
+            "weatherPlacement": "off",
+            "showNowLine": true,
+            "todayHighlightStyle": "full",
+            "eventOverlap": "columns",
+            "wrapEventTitles": true,
+            "eventTapDetails": true,
+            "eventTapStyle": "sheet",
+            "startDay": "sunday",
+            "darkMode": false,
+            "showCountdown": false,
+            "showProgressBar": false,
+            "countdownAllDay": false,
+            "emptyDayText": "",
+            "hourWindow": "fixed",
+            "rollingHours": 8,
+            "scheduleDaysToShow": 7,
+            "scheduleHourStart": 6,
+            "scheduleHourEnd": 22,
+            "scheduleShowDescription": false,
+            "scheduleStartAnchor": "start-of-week",
+            "weekCollapsePastDays": true,
+            "weekShowDescription": false,
+            "showMeals": false,
+            "showChores": false,
+            "familyShowEveryoneRow": true,
+            "upNextLaterCount": 3,
+            "upNextShowEarlier": true,
+            "upNextShowTomorrow": true,
+            "freeTimeHourStart": 7,
+            "freeTimeHourEnd": 22,
+            "freeTimeShowTomorrow": true,
+            "monthShowWeekNumbers": false,
+            "monthMaxEventsPerCell": 0,
+            "dayHourStart": 6,
+            "dayHourEnd": 22,
+            "dayShowLocation": true,
+            "dayShowDescription": false,
+            "agendaDaysAhead": 14,
+            "agendaHideEmptyDays": false,
+            "agendaShowFinishedToday": false,
+            "agendaShowDescription": false,
+            "agendaSeparators": "none",
+            "showLegend": "off",
+            "interactiveNavigation": true
+          },
+          "style": {
+            "padding": 0,
+            "borderRadius": 0,
+            "backdropBlur": 0,
+            "backgroundColor": "transparent",
+            "borderWidth": 0,
+            "shadowSize": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "chores",
+      "name": "Chores and rewards",
+      "backgroundImage": "",
+      "rotationDurationMs": 0,
+      "modules": [
+        {
+          "id": "chores-module",
+          "type": "fullscreen-chore-chart",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "size": {
+            "w": 1920,
+            "h": 1080
+          },
+          "zIndex": 1,
+          "config": {
+            "view": "chores",
+            "showRewardsButton": true,
+            "weekStartDay": "sunday",
+            "weekProgress": "chips",
+            "layout": "by-time",
+            "showPoints": true,
+            "showStreaks": true,
+            "showTimeOfDay": true,
+            "allowDisplayComplete": true,
+            "darkMode": false,
+            "density": "cozy",
+            "typographySize": "medium",
+            "accentColor": "",
+            "personSelection": true
+          },
+          "style": {
+            "padding": 0,
+            "borderRadius": 0,
+            "backdropBlur": 0,
+            "backgroundColor": "transparent",
+            "borderWidth": 0,
+            "shadowSize": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "photos",
+      "name": "Photos",
+      "backgroundImage": "",
+      "rotationDurationMs": 0,
+      "modules": [
+        {
+          "id": "photos-module",
+          "type": "fullscreen-photo",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "size": {
+            "w": 1920,
+            "h": 1080
+          },
+          "zIndex": 1,
+          "config": {
+            "source": "local",
+            "directory": "",
+            "intervalMs": 10000,
+            "transition": "fade",
+            "objectFit": "contain",
+            "shuffle": true,
+            "showClock": true,
+            "kenBurns": false,
+            "mediaTypes": "photos",
+            "maxVideoDurationMs": 60000
+          },
+          "style": {
+            "padding": 0,
+            "borderRadius": 0,
+            "backdropBlur": 0,
+            "backgroundColor": "transparent",
+            "borderWidth": 0,
+            "shadowSize": 0
+          }
+        }
+      ]
+    }
+  ]
+}

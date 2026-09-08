@@ -1,0 +1,183 @@
+import { describe, it, expect } from 'vitest';
+import { balanceRows, choreTapSize, fitChoreFontSize, fitPerRow, partitionMembers, starIconSize, weekMembers } from '../layout';
+import type { MemberStats } from '../types';
+import type { ChoreMember } from '@/types/config';
+
+function stats(total: number, weekAssigned: number): MemberStats {
+  return { total, completed: 0, percentage: 0, streak: 0, weeklyPoints: 0, weeklyPointsTotal: 0, rewardBalance: 0, weekAssigned };
+}
+
+const member = (id: string): ChoreMember => ({ id, name: id, emoji: '', color: '#fff' });
+
+describe('balanceRows', () => {
+  it('keeps everything on one row when it fits', () => {
+    expect(balanceRows([1, 2, 3], 3)).toEqual([[1, 2, 3]]);
+    expect(balanceRows([1, 2], 5)).toEqual([[1, 2]]);
+  });
+
+  it('spreads a remainder across rows instead of leaving a lone trailing item', () => {
+    expect(balanceRows([1, 2, 3, 4, 5, 6, 7], 3)).toEqual([[1, 2, 3], [4, 5], [6, 7]]);
+    expect(balanceRows([1, 2, 3, 4], 3)).toEqual([[1, 2], [3, 4]]);
+    expect(balanceRows([1, 2, 3, 4, 5], 4)).toEqual([[1, 2, 3], [4, 5]]);
+  });
+
+  it('splits evenly when the count divides', () => {
+    expect(balanceRows([1, 2, 3, 4, 5, 6], 3)).toEqual([[1, 2, 3], [4, 5, 6]]);
+  });
+
+  it('never returns an empty row and tolerates a zero or fractional limit', () => {
+    expect(balanceRows([], 3)).toEqual([]);
+    expect(balanceRows([1, 2], 0)).toEqual([[1], [2]]);
+    expect(balanceRows([1, 2, 3], 2.9)).toEqual([[1, 2], [3]]);
+  });
+});
+
+describe('fitPerRow', () => {
+  it('counts how many items fit with gaps between them', () => {
+    // 468px wide, 144px items, 8px gaps: 3 fit (3*144 + 2*8 = 448), 4 do not.
+    expect(fitPerRow(468, 144, 8, 6)).toBe(3);
+    expect(fitPerRow(900, 144, 8, 6)).toBe(5);
+  });
+
+  it('never exceeds the item count and never drops below one', () => {
+    expect(fitPerRow(2000, 144, 8, 2)).toBe(2);
+    expect(fitPerRow(100, 144, 8, 6)).toBe(1);
+  });
+
+  it('fits everything on one row while the width is unmeasured', () => {
+    expect(fitPerRow(0, 144, 8, 6)).toBe(6);
+  });
+});
+
+describe('partitionMembers', () => {
+  const m = new Map<string, MemberStats>([
+    ['kid', stats(3, 12)],
+    ['rest', stats(0, 4)],
+    ['parent', stats(0, 0)],
+  ]);
+  const members = [member('parent'), member('kid'), member('rest'), member('unknown')];
+
+  it('splits members into active, day off, and idle', () => {
+    const { active, dayOff, idle } = partitionMembers(members, m);
+    expect(active.map((x) => x.id)).toEqual(['kid']);
+    expect(dayOff.map((x) => x.id)).toEqual(['rest']);
+    expect(idle.map((x) => x.id)).toEqual(['parent', 'unknown']);
+  });
+
+  it('keeps the household order within each group', () => {
+    const { idle } = partitionMembers([member('unknown'), member('parent')], m);
+    expect(idle.map((x) => x.id)).toEqual(['unknown', 'parent']);
+  });
+
+  it('charts everyone with chores this week, in order', () => {
+    expect(weekMembers(members, m).map((x) => x.id)).toEqual(['kid', 'rest']);
+  });
+});
+
+describe('fitChoreFontSize', () => {
+  const day = { width: 476, height: 626, requested: 24, rows: 10, sections: 4, view: 'today' };
+
+  it('shrinks a busy day to fit its own default card', () => {
+    // Ten chores at the module's 24px default need ~780px of rows; the card
+    // is 650. Before this the last three were cut off mid-row.
+    const fitted = fitChoreFontSize(day);
+    expect(fitted).toBeLessThan(24);
+    // The list, at the size it settled on, fits the box it was given.
+    const rowPx = choreTapSize(fitted) + fitted;
+    const gaps = (day.sections - 1) * 8;
+    expect(day.rows * rowPx + day.sections * 1.9 * fitted + 3.7 * fitted + gaps)
+      .toBeLessThanOrEqual(day.height);
+  });
+
+  it('accounts for the tap target refusing to shrink past its own floor', () => {
+    // Rows stop shrinking with the type once the target hits its 24px floor,
+    // so the fit has to search rather than divide: at 14 chores a closed-form
+    // solve returns a size whose rows still overflow.
+    const fitted = fitChoreFontSize({ ...day, rows: 12, sections: 4 });
+    const rowPx = choreTapSize(fitted) + fitted;
+    expect(12 * rowPx + 4 * 1.9 * fitted + 3.7 * fitted + 24).toBeLessThanOrEqual(day.height);
+  });
+
+  it('bottoms out at the floor when no size can fit the day, leaving the rest to the list', () => {
+    // Twenty rows cannot fit 626px even at the floor: the list scrolls and
+    // says how many are below it (see FitRows) instead of vanishing.
+    expect(fitChoreFontSize({ ...day, rows: 20, sections: 4 })).toBe(11);
+  });
+
+  it('leaves a light day at the size the household asked for', () => {
+    expect(fitChoreFontSize({ ...day, rows: 3, sections: 2 })).toBe(24);
+  });
+
+  it('never exceeds the module font size, however big the box', () => {
+    expect(fitChoreFontSize({ ...day, width: 4000, height: 4000, rows: 1, sections: 1 })).toBe(24);
+  });
+
+  it('stops shrinking at a readable floor rather than vanishing', () => {
+    expect(fitChoreFontSize({ ...day, height: 120, rows: 30, sections: 4 })).toBe(11);
+  });
+
+  it('keeps the authored size until the box has been measured', () => {
+    expect(fitChoreFontSize({ ...day, width: 0, height: 0 })).toBe(24);
+  });
+
+  it('leaves room for compact\'s member header and totals legend', () => {
+    // Compact draws shorter rows than the list views but carries far more
+    // chrome, so the fit has to budget for the chrome, not just the rows.
+    const compact = fitChoreFontSize({ ...day, view: 'compact', sections: 0 });
+    expect(day.rows * (choreTapSize(compact) + 0.5 * compact) + 9 * compact)
+      .toBeLessThanOrEqual(day.height);
+  });
+});
+
+describe('choreTapSize', () => {
+  it('keeps a fingertip target while the type allows one', () => {
+    expect(choreTapSize(24)).toBe(38);
+  });
+
+  it('shrinks with the type rather than pushing chores off the bottom', () => {
+    expect(choreTapSize(16)).toBeLessThan(38);
+  });
+
+  it('never goes below a size a child can hit', () => {
+    expect(choreTapSize(11)).toBe(24);
+  });
+});
+
+describe('fitChoreFontSize, star chart', () => {
+  // rows = charted members, sections = legend rows.
+  const chart = { width: 476, height: 626, requested: 24, rows: 5, sections: 1, view: 'star-chart' };
+
+  it('keeps seven days of stars inside the width rather than squeezing the columns', () => {
+    // The name column plus seven day columns need about 20em across; the list
+    // views' 13em let the table run past its own box.
+    expect(fitChoreFontSize({ ...chart, width: 300 })).toBeLessThanOrEqual(300 / 20);
+  });
+
+  it('shrinks for a bigger household', () => {
+    const five = fitChoreFontSize(chart);
+    const seven = fitChoreFontSize({ ...chart, rows: 7, sections: 2, height: 300, width: 300 });
+    expect(seven).toBeLessThan(five);
+  });
+
+  it('bottoms out at the floor when the household cannot fit', () => {
+    // Ten kids in a 300x300 card is past any size that helps: it stops at the
+    // floor and FitRows says how many are below.
+    expect(fitChoreFontSize({ ...chart, rows: 10, sections: 3, width: 300, height: 300 })).toBe(11);
+  });
+
+  it('leaves the authored size alone when the chart already fits', () => {
+    expect(fitChoreFontSize({ ...chart, rows: 2, sections: 1, width: 900, height: 900 })).toBe(24);
+  });
+});
+
+describe('starIconSize', () => {
+  it('scales the member icon with the chart instead of pinning it at 18px', () => {
+    expect(starIconSize(24)).toBeGreaterThan(starIconSize(12));
+  });
+
+  it('stays visible at the floor and never dwarfs a big chart', () => {
+    expect(starIconSize(4)).toBe(10);
+    expect(starIconSize(100)).toBe(22);
+  });
+});
+

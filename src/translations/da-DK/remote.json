@@ -1,0 +1,652 @@
+{
+  "tabs": {
+    "control": "Kontrol",
+    "chores": "Pligter",
+    "meals": "Måltider",
+    "photos": "Billeder",
+    "timers": "Timere"
+  },
+  "statusBar": {
+    "title": "Fjernbetjening",
+    "settingsAriaLabel": "Indstillinger",
+    "hubConnected": "Forbundet til Home Screens",
+    "hubDisconnected": "Kan ikke nå Home Screens"
+  },
+  "connectionBanner": {
+    "unreachable": "Kan ikke nå Home Screens. Tjek, at denne telefon er på hjemmets wi-fi, og at hoved-Pi'en er tændt.",
+    "restarting": "Home Screens genstarter. Forbinder igen om cirka 20 sekunder…",
+    "rebooting": "Enheden genstarter. Forbinder igen om cirka et minut…"
+  },
+  "backupReminder": {
+    "daysAgoSingular": "Du har ikke foretaget i {n} dag.",
+    "daysAgoPlural": "Du har ikke foretaget i {n} dage.",
+    "backupButton": "Sikkerhedskopi",
+    "savingButton": "Gemmer…",
+    "dismissAriaLabel": "Afvis"
+  },
+  "updateAvailable": {
+    "message": "Opdatering tilgængelig: v{version}",
+    "dismissAriaLabel": "Afvis",
+    "hint": "Installer den fra editoren på en computer under Vedligeholdelse > System og opdateringer.",
+    "openEditor": "Åbn editoren"
+  },
+  "displayHero": {
+    "stateActive": "Aktiv",
+    "stateDimmed": "Deaktiveret",
+    "stateAsleep": "Slumrer",
+    "stateOffline": "Offline",
+    "updatedTimeAgo": "Opdateret {ago}",
+    "lastSeenTimeAgo": "Sidst set {ago}",
+    "screenIndex": "Skærm {current} af {total}",
+    "waiting": "Venter på skærm…",
+    "unreachable": "Skærm er ikke tilgængelig",
+    "notConnectedTitle": "Skærmen har ikke oprettet forbindelse endnu",
+    "notConnectedHint": "Tjek at den er tændt, eller gør opsætningen færdig i editoren under Pr. display.",
+    "theDisplay": "Skærmen",
+    "allHeading": "Alle skærme",
+    "rowNotConnected": "Ikke forbundet endnu",
+    "pickOneHint": "Vælg én skærm for at skifte dens side eller profil.",
+    "controlsPaused": "Styringen holder pause, indtil den er forbundet igen."
+  },
+  "screenControls": {
+    "prevAriaLabel": "Forrige skærm",
+    "nextAriaLabel": "Næste skærm"
+  },
+  "quickActions": {
+    "wakeDisplay": "Væk skærm",
+    "sleepDisplay": "Slumr skærm",
+    "sendAlert": "Send advarsel",
+    "waitingFor": "Venter på {name}…",
+    "waitingForAll": "Venter på skærmene…"
+  },
+  "brightnessCard": {
+    "label": "Lysstyrke",
+    "valueAriaLabel": "Lysstyrke {percent}%",
+    "unknownAriaLabel": "Lysstyrke, ikke meldt endnu"
+  },
+  "profileSwitcher": {
+    "heading": "Profiler",
+    "noProfile": "Alle sider"
+  },
+  "displayPicker": {
+    "targeting": "Send til",
+    "allLabel": "Alle skærme"
+  },
+  "mobileColorPicker": {
+    "colorLabel": "Farve",
+    "customColorTitle": "Brugerdefineret farve"
+  },
+  "choresTab": {
+    "header": "Pligter",
+    "subNav": {
+      "today": "I dag",
+      "manage": "Administrér",
+      "rewards": "Belønninger"
+    },
+    "empty": {
+      "title": "Der er ikke tilføjet pligter endnu",
+      "description": "Skift til Administrér for at tilføje familiemedlemmer og pligter.",
+      "kidTitle": "Ingen pligter endnu",
+      "kidDescription": "Bed en voksen tilføje pligter fra sin telefon.",
+      "setUpButton": "Tilføj pligter"
+    },
+    "warningDismissAriaLabel": "Ignorér advarsel",
+    "memberAriaLabel": "{name}",
+    "memberAriaLabelAllDone": "{name} (afsluttet)",
+    "history": {
+      "editingPrefix": "Du sætter flueben for ",
+      "editingNote": "Her vises dagens opgaveliste, så opgaver du lige har tilføjet, kan se ud som om de blev sprunget over.",
+      "lockedMessage": "Bed en voksen tilføje de pligter du mangler.",
+      "editingSuffix": ". Billetter tæller stadig med i dag."
+    },
+    "progress": {
+      "completion": "{done}/{total} afsluttet",
+      "allDone": "Alle pligter er klaret!"
+    },
+    "noChoresToday": "Ingen pligter i dag!",
+    "ticketCountSingular": "{n} billet",
+    "ticketCountPlural": "{n} billetter",
+    "choreAriaLabelMarkComplete": "Markér afsluttet: {chore}",
+    "choreAriaLabelCompleted": "Afsluttet: {chore}",
+    "saveFailed": "Kunne ikke gemme. Prøv igen.",
+    "holdToUncheckHint": "Hold nede for at fjerne fluebenet",
+    "celebration": "Godt gået, {name}!",
+    "dayToggle": {
+      "ariaLabel": "Hvilken dag der vises",
+      "yesterday": "I går",
+      "today": "I dag"
+    }
+  },
+  "choreHistoryNav": {
+    "jumpToTodayAriaLabel": "Spring til i dag",
+    "todayButton": "Tilbage til i dag",
+    "tileAriaLabel": "Vis {date}, {earned} af {total} børn har udført alle sine pligter",
+    "tileAriaLabelEmpty": "Vis {date}, ingen pligter",
+    "earlierButton": "Tidligere",
+    "captionToday": "Indtil nu i dag: {earned} af {total} har klaret alle deres pligter",
+    "captionPast": "{date}: {earned} af {total} har klaret alle deres pligter",
+    "captionPastNone": "{date}: intet blev krydset af"
+  },
+  "choresManage": {
+    "tabs": {
+      "chores": "Pligter",
+      "members": "Medlemmer"
+    },
+    "members": {
+      "empty": "Ingen medlemmer endnu",
+      "emptyHint": "Start med at tilføje familiemedlemmer",
+      "editAriaLabel": "Redigér {name}",
+      "choreCountSingular": "{n} pligt tildelt",
+      "choreCountPlural": "{n} pligter tildelt",
+      "addButton": "Tilføj medlem"
+    },
+    "chores": {
+      "empty": "Ingen pligter endnu",
+      "emptyHintNoMembers": "Tilføj familiemedlemmer først",
+      "emptyHintAddChores": "Tilføj pligter og tildel dem til medlemmer",
+      "editAriaLabel": "Redigér {name}",
+      "addButton": "Tilføj pligt"
+    },
+    "memberForm": {
+      "titleNew": "Nyt medlem",
+      "titleEdit": "Redigér medlem",
+      "nameLabel": "Navn",
+      "namePlaceholder": "Indtast navn...",
+      "avatarLabel": "Avatar",
+      "addSubmit": "Tilføj medlem",
+      "saveSubmit": "Gem medlem",
+      "deleteButton": "Slet medlem"
+    },
+    "memberDelete": {
+      "title": "Slet \"{name}\"?",
+      "fallbackName": "dem",
+      "descriptionNoChores": "Dette fjerner {name} fra alle tildelte pligter. Pligter uden andre tildelte bliver også slettet.",
+      "descriptionWithChoresSingular": "Dette fjerner {name} fra {count} tildelt pligt. Pligter uden andre tildelte bliver også slettet.",
+      "descriptionWithChoresPlural": "Dette fjerner {name} fra alle {count} tildelte pligter. Pligter uden andre tildelte bliver også slettet.",
+      "confirmLabel": "Slet medlem"
+    },
+    "choreForm": {
+      "titleNew": "Ny pligt",
+      "titleEdit": "Redigér pligt",
+      "nameLabel": "Navn",
+      "namePlaceholder": "Titel på pligt...",
+      "iconLabel": "Ikon",
+      "ticketsLabel": "Billetter",
+      "frequencyLabel": "Frekvens",
+      "timeOfDayLabel": "Tid på dagen",
+      "dateLabel": "Dato",
+      "daysLabel": "Dage",
+      "assignToLabel": "Tildel",
+      "weeklyScheduleLabel": "Ugeskema",
+      "coverageLabel": "Dækning: {covered} af 7 dage",
+      "rotationLabel": "Rotation",
+      "addSubmit": "Tilføj pligt",
+      "saveSubmit": "Gem pligt",
+      "deleteButton": "Slet pligt"
+    },
+    "choreDelete": {
+      "title": "Slet \"{name}\"?",
+      "description": "Denne pligt og hele dens historik vil blive fjernet.",
+      "confirmLabel": "Slet pligt"
+    }
+  },
+  "mealsTab": {
+    "header": "Måltider",
+    "loading": "Henter måltider...",
+    "settingsButtonAriaLabel": "Åbn indstillinger for måltider",
+    "settingsButtonTitle": "Indstillinger",
+    "weekLabel": {
+      "thisWeek": "Denne uge"
+    },
+    "subNav": {
+      "plan": "Madplan",
+      "library": "Bibliotek",
+      "grocery": "Dagligvarer"
+    },
+    "weekNav": {
+      "prevAriaLabel": "Forrige uge",
+      "nextAriaLabel": "Næste uge",
+      "todayButton": "I dag"
+    },
+    "confirm": {
+      "clearWeek": {
+        "title": "Nulstil madplan?",
+        "description": "Dette til fjerne alle planlagte måltider i denne uge.",
+        "confirmLabel": "Nulstil uge"
+      },
+      "deleteMeal": {
+        "title": "Slet \"{name}\"?",
+        "description": "Dette vil også fjerne måltidet fra alle planlagte tidspunkter.",
+        "confirmLabel": "Slet måltid"
+      }
+    },
+    "weekView": {
+      "todayBadge": "I dag",
+      "notPlanned": "{slot} - Ikke planlagt",
+      "activeNowSuffix": " • Nu",
+      "prepTimeMin": "{minutes}m",
+      "empty": {
+        "title": "Ingen måltider planlagt i denne uge",
+        "description": "Gå til Planlæg for at tilføje måltider.",
+        "planButton": "Planlæg måltider"
+      }
+    },
+    "library": {
+      "searchPlaceholder": "Søg efter måltider...",
+      "filterByAriaLabel": "Filtrér på {label}",
+      "empty": {
+        "titleNoMeals": "Ingen måltider endnu",
+        "titleNoMatches": "Ingen resultater",
+        "hintNoMeals": "Tryk på +-knappen for at tilføje dit første måltid.",
+        "hintNoMatches": "Prøv en anden søgning eller et andet filter."
+      },
+      "prepTimeMin": "{minutes} m forberedelse",
+      "favoriteAddAriaLabel": "Føj til favoritter",
+      "favoriteRemoveAriaLabel": "Fjern fra favoritter",
+      "fabAriaLabel": "Tilføj nyt måltid",
+      "filters": {
+        "all": "Alle",
+        "favorites": "Favoritter",
+        "quick": "Hurtig",
+        "healthy": "Sund",
+        "comfort": "Trøstemad",
+        "kid-friendly": "Børnevenlig"
+      }
+    }
+  },
+  "mealForm": {
+    "titleNew": "Tilføj måltid",
+    "titleEdit": "Redigér måltid",
+    "saveSubmit": "Gem måltid",
+    "saveChangesSubmit": "Gem ændringer",
+    "savingSubmit": "Gemmer…",
+    "deleteButton": "Slet måltid",
+    "nameLabel": "Navn på måltid",
+    "namePlaceholder": "f.eks. kylling i wok",
+    "emojiLabel": "Emoji",
+    "emojiSelectAriaLabel": "Vælg {emoji}",
+    "prepTimeLabel": "Forberedelsestid",
+    "cookTimeLabel": "Tilberedningstid",
+    "minPlaceholder": "min",
+    "servingsLabel": "Portioner",
+    "servingsPlaceholder": "4",
+    "difficultyLabel": "Sværhedsgrad",
+    "tagsLabel": "Tags",
+    "ingredientsLabel": "Ingredienser",
+    "ingredientNamePlaceholder": "Navn",
+    "ingredientAmountPlaceholder": "Mængde",
+    "removeIngredientAriaLabel": "Fjern ingrediens",
+    "addIngredientButton": "+ Tilføj ingrediens",
+    "recipeUrlLabel": "Opskrift-URL",
+    "recipeUrlPlaceholder": "https://...",
+    "notesLabel": "Noter",
+    "notesPlaceholder": "Noter om dette måltid …",
+    "ratingLabel": "Bedømmelse",
+    "ratingStarAriaLabel": "Giv {n} ud af 5 stjerner",
+    "favoriteOn": "Favorit",
+    "favoriteOff": "Føj til favoritter"
+  },
+  "mealsPlan": {
+    "actions": {
+      "suggest": "Foreslå",
+      "suggestAriaLabel": "Foreslå tilfældige måltider",
+      "copyLastWeek": "Kopiér sidste uge",
+      "copyLastWeekAriaLabel": "Kopiér sidste uges plan",
+      "clear": "Ryd",
+      "clearAriaLabel": "Ryd alle planlagte måltider"
+    },
+    "empty": {
+      "title": "Ingen måltider i dit bibliotek",
+      "description": "Tilføj først måltider til dit bibliotek, og planlæg så din uge.",
+      "addMealsButton": "Tilføj måltider"
+    },
+    "slot": {
+      "addMeal": "+ Tilføj måltid",
+      "planSlotAriaLabel": "Planlæg {slot} til {day}",
+      "mealFallback": "måltid",
+      "changeMealAriaLabel": "Skift {meal} for {slot}"
+    },
+    "picker": {
+      "title": "Vælg et måltid",
+      "emptyLibrary": "Ingen måltider i biblioteket. Tilføj nogle først.",
+      "prepTimeShort": "{minutes}m",
+      "removeMealButton": "Fjern måltid",
+      "subtitle": "{slot} · {day}"
+    }
+  },
+  "mealsGrocery": {
+    "itemsCountSingular": "{checked} af {total} vare",
+    "itemsCountPlural": "{checked} af {total} varer",
+    "shareButton": "Del",
+    "shareCopiedButton": "Kopieret!",
+    "autoGeneratedHint": "Oprettet automatisk ud fra denne uges måltider",
+    "shareHeading": "Indkøbsliste",
+    "shareCompleteMessage": "Indkøbslisten er færdig!",
+    "empty": {
+      "title": "Ingen varer på listen",
+      "description": "Planlæg måltider med ingredienser for at se din indkøbsliste."
+    }
+  },
+  "mealsSettings": {
+    "ariaLabel": "Indstillinger for måltider",
+    "title": "Indstillinger for måltider",
+    "cancelAriaLabel": "Annullér og luk",
+    "slots": {
+      "heading": "Måltider i planen",
+      "description": "Hvilke måltider planlægger du? Det ændrer, hvad skærmen og editoren viser.",
+      "toggleAriaLabelEnabled": "{label}, slået til",
+      "toggleAriaLabelDisabled": "{label}, slået fra"
+    },
+    "weekStart": {
+      "heading": "Ugen starter",
+      "sunday": "søndag",
+      "monday": "mandag"
+    },
+    "timeFormat": {
+      "heading": "Tidsformat",
+      "description": "Bruges alle steder, hvor måltider vises.",
+      "twelveHourLabel": "12-timer",
+      "twentyFourHourLabel": "24-timer",
+      "followLabel": "Som uret"
+    },
+    "defaultTimes": {
+      "heading": "Standard serveringstider",
+      "description": "Bruges, når et planlagt måltid ikke har sin egen tid. Lad feltet stå tomt for måltider, der varierer.",
+      "clear": "Ryd",
+      "clearAriaLabel": "Ryd standardtid for {name}",
+      "timeInputAriaLabel": "Standardtid for {name}"
+    },
+    "save": {
+      "saving": "Gemmer…",
+      "submit": "Gem indstillinger",
+      "saveFailed": "Kunne ikke gemme. Prøv igen.",
+      "networkError": "Netværksfejl. Prøv igen."
+    }
+  },
+  "rewardForm": {
+    "titleAdd": "Tilføj belønning",
+    "titleEdit": "Redigér belønning",
+    "saveButton": "Gem belønning",
+    "deleteButton": "Slet belønning",
+    "iconLabel": "Ikon",
+    "nameLabel": "Navn",
+    "namePlaceholder": "f.eks. ekstra skærmtid",
+    "ticketCostLabel": "Pris i billetter",
+    "ticketCostPlaceholder": "10",
+    "enabledLabel": "Slået til",
+    "visible": "Synlig",
+    "hidden": "Skjult",
+    "descriptionLabel": "Beskrivelse (valgfri)",
+    "descriptionPlaceholder": "Kort beskrivelse …",
+    "availableToLabel": "Kan bruges af",
+    "everyone": "Alle",
+    "deleteConfirm": {
+      "title": "Slet belønning",
+      "description": "Er du sikker på, at du vil slette \"{name}\"? Historikken over indløsninger bliver bevaret."
+    }
+  },
+  "alertSender": {
+    "title": "Send besked",
+    "closeAriaLabel": "Luk afsendelse af besked",
+    "typeInfo": "Info",
+    "typeWarning": "Advarsel",
+    "typeUrgent": "Haster",
+    "titleLabel": "Titel",
+    "titlePlaceholder": "Valgfri",
+    "messageLabel": "Besked",
+    "messagePlaceholder": "Hvad skal skærmen vise?",
+    "durationLabel": "Varighed",
+    "duration10s": "10s",
+    "duration30s": "30s",
+    "duration1Min": "1 min",
+    "duration5Min": "5 min",
+    "durationPersistent": "Sticky",
+    "sendButton": "Send besked",
+    "sendingButton": "Sender…",
+    "sentButton": "Sendt!",
+    "failedButton": "Blev ikke sendt, prøv igen",
+    "clearOnDisplay": "Ryd beskeder på {name}",
+    "clearOnAll": "Ryd beskeder på alle skærme",
+    "clearingButton": "Rydder…",
+    "showingNow": "({count} vises nu)"
+  },
+  "rewardsView": {
+    "nav": {
+      "redeem": "Indløs",
+      "rewards": "Rediger listen",
+      "balances": "Saldi",
+      "history": "Historik"
+    },
+    "ticketCountSingular": "{n} billet",
+    "ticketCountPlural": "{n} billetter",
+    "redeem": {
+      "balanceLabel": "tilgængelige billetter",
+      "availableHeading": "Tilgængelige belønninger",
+      "empty": "Der er ikke tilføjet belønninger endnu",
+      "memberFallback": "dette medlem",
+      "confirmTitle": "Indløs {name}?",
+      "confirmDescriptionSingular": "Det bruger {cost} billet af {memberName}s saldo. Tilbage: {remaining}",
+      "confirmDescriptionPlural": "Det bruger {cost} billetter af {memberName}s saldo. Tilbage: {remaining}",
+      "confirmLabelSingular": "Indløs for {cost} billet",
+      "confirmLabelPlural": "Indløs for {cost} billetter",
+      "emptyKid": "Ingen belønninger endnu. En voksen kan tilføje nogle fra sin telefon.",
+      "balanceLabelNamed": "billetter til {name}",
+      "switchHint": "Er du ikke {name}? Vælg dit navn under I dag."
+    },
+    "manage": {
+      "heading": "Belønninger",
+      "countSingular": "{n} belønning",
+      "countPlural": "{n} belønninger",
+      "everyone": "Alle",
+      "disabled": "Slået fra",
+      "memberCountSingular": "{n} medlem",
+      "memberCountPlural": "{n} medlemmer",
+      "addButton": "Tilføj belønning"
+    },
+    "balances": {
+      "heading": "Billetsaldi",
+      "adjustDownAriaLabel": "Træk en billet fra {name}",
+      "adjustUpAriaLabel": "Giv {name} en billet"
+    },
+    "history": {
+      "heading": "Seneste indløsninger",
+      "empty": "Ingen indløsninger endnu",
+      "entry": {
+        "beforeReward": " indløste ",
+        "afterRewardSingular": " for {n} billet",
+        "afterRewardPlural": " for {n} billetter"
+      }
+    },
+    "saveFailed": "Kunne ikke gemme. Prøv igen."
+  },
+  "settingsSheet": {
+    "title": "Indstillinger",
+    "closeAriaLabel": "Luk indstillinger",
+    "system": {
+      "heading": "System",
+      "errorFailedToLoad": "Indlæsning fejlede",
+      "hostLabel": "Enhedsnavn",
+      "uptimeLabel": "Oppetid",
+      "memoryLabel": "Hukommelse",
+      "diskLabel": "Harddisk"
+    },
+    "theme": {
+      "heading": "Tema",
+      "light": "Lys",
+      "dark": "Mørk",
+      "system": "System"
+    },
+    "data": {
+      "heading": "Data",
+      "backup": {
+        "label": "Backup alt data",
+        "savedLabel": "Backup gemt",
+        "busyLabel": "Henter…",
+        "description": "Hent konfiguration, pligter, måltider og belønninger"
+      },
+      "restore": {
+        "label": "Gendan backup",
+        "confirmingLabel": "Bekræft for at gendanne",
+        "busyLabel": "Gendanner…",
+        "doneLabel": "Gendannet",
+        "invalidFileLabel": "Ugyldig backupfil",
+        "failedLabel": "Gendannelse fejlede",
+        "idleDescription": "Upload en backupfil fra denne enhed",
+        "confirmingDescription": "Dette vil overskrive alle eksisterende data",
+        "doneWithoutKeysLabel": "Gendannet, uden nøgler",
+        "doneWithoutKeysDescription": "Dine nøgler og konti er uændrede. Tilføj dem igen i editoren."
+      }
+    },
+    "power": {
+      "heading": "Genstart",
+      "restartService": {
+        "label": "Genstart Home Screens",
+        "description": "Løser de fleste hikke. Intet af det, du har sat op, går tabt.",
+        "confirmTitle": "Genstart Home Screens?",
+        "confirmBody": "Skærmene bliver sorte et øjeblik, og denne fjernbetjening forbinder igen om cirka 20 sekunder.",
+        "confirmButton": "Genstart"
+      },
+      "reboot": {
+        "label": "Genstart enhed",
+        "description": "Genstart af hele systemet",
+        "confirmTitle": "Genstart enheden?",
+        "confirmBody": "Alt stopper, mens den genstarter. Denne fjernbetjening forbinder igen om cirka et minut.",
+        "confirmButton": "Genstart enheden"
+      }
+    }
+  },
+  "photosTab": {
+    "header": "Billeder",
+    "newFolderButton": "Ny mappe",
+    "newFolderPlaceholder": "Mappenavn",
+    "createButton": "Opret",
+    "uploadingProgress": "Uploader {current} af {total}...",
+    "uploadFailedFor": "Upload af {name} fejlede",
+    "uploadFailed": "Upload fejlede",
+    "uploadedSingular": "{n} billede uploadet",
+    "uploadedPlural": "{n} billeder uploaded",
+    "photoDeleted": "Billede blev slettet",
+    "deleteFailed": "Sletning af billede fejlede",
+    "folderCreated": "Mappe blev oprettet",
+    "failedCreateFolder": "Oprettelse af mappe fejlede",
+    "uploadButton": "Upload billeder",
+    "emptyTitle": "Ingen billeder i denne mappe",
+    "emptyHint": "Tryk Upload billeder for at tilføje billeder",
+    "deletingButton": "Sletter...",
+    "deleteAriaLabel": "Slet billede",
+    "dismissErrorAriaLabel": "Afvis fejl",
+    "mainFolderTab": "Hovedmappe",
+    "deleteConfirmTitle": "Slet dette foto?",
+    "deleteConfirmDescription": "Det forsvinder fra skærmen og ud af fotobiblioteket for altid.",
+    "savedAsHint": "Gemmes som {name}"
+  },
+  "choresKidView": {
+    "notConfigured": "Ingen pligter endnu. Bed en voksen om at tilføje et pligtskema til skærmen.",
+    "grownUpsLink": "Voksne: åbn familiefjernbetjeningen"
+  },
+  "mealTimeChip": {
+    "servingTimeAria": "Serveringstide {time}, klik for at ændre",
+    "servingTimeTitle": "Serveringstid: {time}",
+    "setServingTime": "Indstil serveringstid",
+    "setTime": "+ Indstil tid",
+    "setMealTime": "Indstil tid for måltid",
+    "servingTime": "Indstil tid for servering",
+    "clearTime": "Nulstil tid"
+  },
+  "timers": {
+    "title": "Timere",
+    "quickTimer": "Hurtig timer",
+    "quickName": "{minutes} minutters timer",
+    "start": "Start",
+    "sound": "Lyd",
+    "routines": "Rutiner",
+    "newRoutine": "Ny rutine",
+    "editRoutine": "Rediger rutine",
+    "emptyHint": "En rutine er en timer med trin, som en morgenrutine: tag tøj på, børst tænder, red din seng. Lav en og start den på skærmen.",
+    "routineMeta": "{steps} trin · {minutes} min.",
+    "stepCount": "Trin {current} af {total}",
+    "pause": "Pause",
+    "resume": "Fortsæt",
+    "skip": "Spring over",
+    "stop": "Stop",
+    "addMinute": "+1 min.",
+    "done": "Færdig!",
+    "save": "Gem",
+    "deleteRoutine": "Slet",
+    "reallyDelete": "Vil du slette den?",
+    "routineName": "Navn",
+    "routineNamePlaceholder": "Morgenrutine",
+    "routineIcon": "Ikon",
+    "viewLabel": "Timerens udseende",
+    "viewRing": "Lysende ring",
+    "viewFace": "Urskive",
+    "viewCascade": "Farvefald",
+    "viewPath": "Stjernesti",
+    "steps": "Trin",
+    "stepIcon": "Trin-ikon",
+    "stepNamePlaceholder": "Hvad skal der gøres",
+    "stepMinutes": "Minutter",
+    "waitForTap": "Vent på et tryk på Færdig",
+    "moveUp": "Flyt op",
+    "moveDown": "Flyt ned",
+    "removeStep": "Fjern trin",
+    "addStep": "Tilføj trin",
+    "minutesShort": "{minutes} min.",
+    "loadError": "Rutinerne kunne ikke indlæses. Tjek forbindelsen og prøv igen.",
+    "retry": "Prøv igen",
+    "onAllDisplays": "På alle skærme",
+    "onDisplay": "På {name}",
+    "showOn": "Send til",
+    "allDisplays": "Alle skærme",
+    "showOnNext": "Næste timer på",
+    "onDisplays": "På {count} skærme",
+    "replaceTitle": "Start en ny timer?",
+    "replaceBody": "Der kører allerede en timer. En ny timer stopper den.",
+    "soundOn": "Lyd til",
+    "soundOff": "Lyd fra",
+    "minUnit": "min.",
+    "secUnit": "sek.",
+    "stepSeconds": "Sekunder",
+    "quickNameSeconds": "{seconds} sekunders timer",
+    "quickNameClock": "{time}-timer",
+    "secondsShort": "{seconds} sek.",
+    "showingOn": "Vises på {names}",
+    "showingOnDisplay": "Vises på skærmen",
+    "waitingForDisplay": "Venter på, at en skærm tager den…",
+    "notShowing": "Ingen skærm viser den endnu. Tjek, at en skærm er tændt."
+  },
+  "formOverlay": {
+    "discard": {
+      "title": "Vil du kassere ændringerne?",
+      "description": "Dine ændringer er ikke gemt endnu.",
+      "confirmLabel": "Kassér",
+      "keepEditing": "Bliv ved med at redigere"
+    }
+  },
+  "feedback": {
+    "alertSent": "Besked sendt til {name}",
+    "alertSentAll": "Besked sendt til alle skærme",
+    "alertsCleared": "Beskeder ryddet på {name}",
+    "alertsClearedAll": "Beskeder ryddet på alle skærme",
+    "noConfirm": "{name} svarede ikke. Den er måske slukket eller offline.",
+    "profileSwitched": "{name} skiftede til {profile}",
+    "profileCleared": "{name} viser alle sider",
+    "profileFailed": "Kunne ikke skifte profil på {name}",
+    "hubBack": "Home Screens er tilbage"
+  },
+  "tabNotSetUp": {
+    "chores": {
+      "title": "Der er ikke noget pligtskema endnu",
+      "body": "Pligter dukker op her, så snart der er et pligtskema på en af dine skærme."
+    },
+    "meals": {
+      "title": "Der er ikke nogen madplan endnu",
+      "body": "Måltider dukker op her, så snart der er en madplanlægger på en af dine skærme."
+    },
+    "photos": {
+      "title": "Der er ikke noget billedshow endnu",
+      "body": "Billeder dukker op her, så snart der er et billedshow på en af dine skærme."
+    },
+    "howTo": "Tilføj det fra en computer: åbn {url}, og læg det på en skærm."
+  }
+}

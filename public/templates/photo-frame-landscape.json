@@ -1,0 +1,51 @@
+{
+  "_type": "home-screens-layout",
+  "_version": 1,
+  "metadata": {
+    "name": "Photo Frame",
+    "description": "A full-screen digital photo frame with slideshow transitions",
+    "exportedAt": "2026-01-01T00:00:00.000Z",
+    "configVersion": 10,
+    "sourceDisplay": { "width": 1920, "height": 1080 },
+    "screenCount": 1,
+    "moduleCount": 1
+  },
+  "visual": {
+    "rotationIntervalMs": 30000,
+    "transitionEffect": "fade",
+    "transitionDuration": 0.6
+  },
+  "screens": [
+    {
+      "id": "tpl-photo-ls-s1",
+      "name": "Photo Frame",
+      "backgroundImage": "",
+      "modules": [
+        {
+          "id": "tpl-photo-ls-m1",
+          "type": "photo-slideshow",
+          "position": { "x": 0, "y": 0 },
+          "size": { "w": 1920, "h": 1080 },
+          "zIndex": 1,
+          "config": {
+            "directory": "/photos",
+            "intervalMs": 10000,
+            "transition": "fade",
+            "objectFit": "cover",
+            "refreshIntervalMs": 60000
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 0,
+            "padding": 0,
+            "backgroundColor": "transparent",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 0
+          }
+        }
+      ]
+    }
+  ]
+}

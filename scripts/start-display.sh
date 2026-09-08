@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Start Home Screens display manually
+# Usage: ./start-display.sh [project-dir]
+
+APP_DIR="${1:-$(cd "$(dirname "$0")/.." && pwd)}"
+
+# --- Shared functions ---
+source "$(dirname "$0")/lib/common.sh"
+
+SERVER_PID=""
+BROWSER_PID=""
+
+cleanup() {
+  echo "Shutting down..."
+  [ -n "${BROWSER_PID}" ] && kill "${BROWSER_PID}" 2>/dev/null || true
+  [ -n "${SERVER_PID}" ] && kill "${SERVER_PID}" 2>/dev/null || true
+  wait 2>/dev/null
+  exit 0
+}
+
+trap cleanup SIGTERM SIGINT SIGHUP
+
+cd "${APP_DIR}"
+
+echo "Building project..."
+npm run build
+
+echo "Starting Next.js server on port ${PORT}..."
+PORT="${PORT}" npm start &
+SERVER_PID=$!
+
+echo "Waiting for server to be ready..."
+for i in $(seq 1 30); do
+  if curl -sf http://localhost:${PORT} > /dev/null 2>&1; then
+    echo "Server is ready."
+    break
+  fi
+  if [ "$i" -eq 30 ]; then
+    echo "Server failed to start within 30 seconds."
+    cleanup
+  fi
+  sleep 1
+done
+
+# Clear crash state and session restore data to avoid duplicate app windows,
+# and keep Chromium from offering to translate a non-English display.
+clear_chromium_crash_state
+disable_chromium_translate_prompt
+
+echo "Launching Chromium in app mode..."
+# Flags come from lib/common.sh. The Pi-only list is deliberately not used
+# here: this script also runs on developer machines, where --ozone-platform=wayland
+# would fail.
+chromium --app=http://localhost:${PORT}/display "${CHROMIUM_KIOSK_FLAGS[@]}" &
+BROWSER_PID=$!
+
+echo "Display running. Press Ctrl+C to stop."
+wait

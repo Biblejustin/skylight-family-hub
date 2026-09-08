@@ -1,0 +1,30 @@
+# Allow only build inputs. Runtime state, credentials, local builds, migration
+# bundles, backups, and host node_modules never enter the build context.
+**
+!package.json
+!package-lock.json
+!next.config.mjs
+!next-env.d.ts
+!postcss.config.mjs
+!tsconfig.json
+!vitest.config.ts
+!vitest.setup.ts
+!LICENSE
+!src/
+!src/**
+!public/
+!public/**
+
+# Ship stock backgrounds only, never personal uploads.
+public/backgrounds/**
+!public/backgrounds/default.svg
+!public/backgrounds/themes/
+!public/backgrounds/themes/**
+
+!scripts/
+!scripts/copy-font-awesome.mjs
+!scripts/init-family-hub.mjs
+!scripts/check-config.ts
+!scripts/check-config.mjs
+!examples/
+!examples/config.json

@@ -1,0 +1,652 @@
+{
+  "tabs": {
+    "control": "Steuerung",
+    "chores": "Aufgaben",
+    "meals": "Mahlzeiten",
+    "photos": "Fotos",
+    "timers": "Timer"
+  },
+  "statusBar": {
+    "title": "Fernsteuerung",
+    "settingsAriaLabel": "Einstellungen",
+    "hubConnected": "Mit Home Screens verbunden",
+    "hubDisconnected": "Home Screens ist nicht erreichbar"
+  },
+  "connectionBanner": {
+    "unreachable": "Home Screens ist nicht erreichbar. Prüfe, ob dieses Handy im Heim-WLAN ist und der Haupt-Pi läuft.",
+    "restarting": "Home Screens startet neu. Verbindung in etwa 20 Sekunden wieder da…",
+    "rebooting": "Das Gerät startet neu. Verbindung in etwa einer Minute wieder da…"
+  },
+  "backupReminder": {
+    "daysAgoSingular": "Du hast seit {n} Tag kein Backup gemacht.",
+    "daysAgoPlural": "Du hast seit {n} Tagen kein Backup gemacht.",
+    "backupButton": "Backup",
+    "savingButton": "Speichert …",
+    "dismissAriaLabel": "Schließen"
+  },
+  "updateAvailable": {
+    "message": "Update verfügbar: v{version}",
+    "dismissAriaLabel": "Schließen",
+    "hint": "Installiere es im Editor an einem Computer unter Wartung > System & Updates.",
+    "openEditor": "Editor öffnen"
+  },
+  "displayHero": {
+    "stateActive": "Aktiv",
+    "stateDimmed": "Gedimmt",
+    "stateAsleep": "Schläft",
+    "stateOffline": "Offline",
+    "updatedTimeAgo": "Aktualisiert {ago}",
+    "lastSeenTimeAgo": "Zuletzt gesehen {ago}",
+    "screenIndex": "Bildschirm {current} von {total}",
+    "waiting": "Warte auf Display …",
+    "unreachable": "Display nicht erreichbar",
+    "notConnectedTitle": "Dieses Display hat sich noch nicht verbunden",
+    "notConnectedHint": "Stelle sicher, dass es eingeschaltet ist, oder richte es im Editor unter „Pro Display“ fertig ein.",
+    "theDisplay": "Das Display",
+    "allHeading": "Alle Displays",
+    "rowNotConnected": "Noch nicht verbunden",
+    "pickOneHint": "Wähle ein Display, um dessen Bildschirm oder Profil zu ändern.",
+    "controlsPaused": "Die Steuerung pausiert, bis es wieder verbunden ist."
+  },
+  "screenControls": {
+    "prevAriaLabel": "Vorheriger Bildschirm",
+    "nextAriaLabel": "Nächster Bildschirm"
+  },
+  "quickActions": {
+    "wakeDisplay": "Display wecken",
+    "sleepDisplay": "Display schlafen legen",
+    "sendAlert": "Hinweis senden",
+    "waitingFor": "Warte auf {name}…",
+    "waitingForAll": "Warte auf die Displays…"
+  },
+  "brightnessCard": {
+    "label": "Helligkeit",
+    "valueAriaLabel": "Helligkeit {percent} %",
+    "unknownAriaLabel": "Helligkeit, noch nicht gemeldet"
+  },
+  "profileSwitcher": {
+    "heading": "Profile",
+    "noProfile": "Alle Bildschirme"
+  },
+  "displayPicker": {
+    "targeting": "Senden an",
+    "allLabel": "Alle Displays"
+  },
+  "mobileColorPicker": {
+    "colorLabel": "Farbe",
+    "customColorTitle": "Eigene Farbe"
+  },
+  "choresTab": {
+    "header": "Aufgaben",
+    "subNav": {
+      "today": "Heute",
+      "manage": "Verwalten",
+      "rewards": "Belohnungen"
+    },
+    "empty": {
+      "title": "Noch keine Aufgaben",
+      "description": "Wechsle zu „Verwalten“, um Familienmitglieder und Aufgaben hinzuzufügen.",
+      "kidTitle": "Noch keine Aufgaben",
+      "kidDescription": "Bitte einen Erwachsenen, Aufgaben am Handy hinzuzufügen.",
+      "setUpButton": "Aufgaben einrichten"
+    },
+    "warningDismissAriaLabel": "Hinweis schließen",
+    "memberAriaLabel": "{name}",
+    "memberAriaLabelAllDone": "{name} (alles geschafft)",
+    "history": {
+      "editingPrefix": "Du hakst ab: ",
+      "editingNote": "Gezeigt wird die heutige Aufgabenliste, neu hinzugefügte Aufgaben können also als verpasst erscheinen.",
+      "lockedMessage": "Bitte einen Erwachsenen, verpasste Aufgaben nachzutragen.",
+      "editingSuffix": ". Tickets zählen trotzdem für heute."
+    },
+    "progress": {
+      "completion": "{done}/{total} geschafft",
+      "allDone": "Alles geschafft!"
+    },
+    "noChoresToday": "Heute keine Aufgaben!",
+    "ticketCountSingular": "{n} Ticket",
+    "ticketCountPlural": "{n} Tickets",
+    "choreAriaLabelMarkComplete": "Abhaken: {chore}",
+    "choreAriaLabelCompleted": "Geschafft: {chore}",
+    "saveFailed": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+    "holdToUncheckHint": "Gedrückt halten, um den Haken zu entfernen",
+    "celebration": "Super gemacht, {name}!",
+    "dayToggle": {
+      "ariaLabel": "Welcher Tag angezeigt wird",
+      "yesterday": "Gestern",
+      "today": "Heute"
+    }
+  },
+  "choreHistoryNav": {
+    "jumpToTodayAriaLabel": "Zu heute springen",
+    "todayButton": "Zurück zu heute",
+    "tileAriaLabel": "{date} ansehen, {earned} von {total} Kindern haben alles geschafft",
+    "tileAriaLabelEmpty": "{date} ansehen, keine Aufgaben",
+    "earlierButton": "Früher",
+    "captionToday": "Bisher heute: {earned} von {total} haben alle Aufgaben geschafft",
+    "captionPast": "{date}: {earned} von {total} haben alle Aufgaben geschafft",
+    "captionPastNone": "{date}: nichts abgehakt"
+  },
+  "choresManage": {
+    "tabs": {
+      "chores": "Aufgaben",
+      "members": "Mitglieder"
+    },
+    "members": {
+      "empty": "Noch keine Mitglieder",
+      "emptyHint": "Füge Familienmitglieder hinzu, um loszulegen",
+      "editAriaLabel": "{name} bearbeiten",
+      "choreCountSingular": "{n} Aufgabe zugewiesen",
+      "choreCountPlural": "{n} Aufgaben zugewiesen",
+      "addButton": "Mitglied hinzufügen"
+    },
+    "chores": {
+      "empty": "Noch keine Aufgaben",
+      "emptyHintNoMembers": "Füge zuerst Familienmitglieder hinzu",
+      "emptyHintAddChores": "Füge Aufgaben hinzu und weise sie Mitgliedern zu",
+      "editAriaLabel": "{name} bearbeiten",
+      "addButton": "Aufgabe hinzufügen"
+    },
+    "memberForm": {
+      "titleNew": "Neues Mitglied",
+      "titleEdit": "Mitglied bearbeiten",
+      "nameLabel": "Name",
+      "namePlaceholder": "Namen eingeben…",
+      "avatarLabel": "Avatar",
+      "addSubmit": "Mitglied hinzufügen",
+      "saveSubmit": "Mitglied speichern",
+      "deleteButton": "Mitglied löschen"
+    },
+    "memberDelete": {
+      "title": "„{name}“ löschen?",
+      "fallbackName": "diese Person",
+      "descriptionNoChores": "{name} wird aus allen zugewiesenen Aufgaben entfernt. Aufgaben ohne weitere Personen werden ebenfalls gelöscht.",
+      "descriptionWithChoresSingular": "{name} wird aus {count} zugewiesenen Aufgabe entfernt. Aufgaben ohne weitere Personen werden ebenfalls gelöscht.",
+      "descriptionWithChoresPlural": "{name} wird aus allen {count} zugewiesenen Aufgaben entfernt. Aufgaben ohne weitere Personen werden ebenfalls gelöscht.",
+      "confirmLabel": "Mitglied löschen"
+    },
+    "choreForm": {
+      "titleNew": "Neue Aufgabe",
+      "titleEdit": "Aufgabe bearbeiten",
+      "nameLabel": "Name",
+      "namePlaceholder": "Name der Aufgabe…",
+      "iconLabel": "Symbol",
+      "ticketsLabel": "Tickets",
+      "frequencyLabel": "Häufigkeit",
+      "timeOfDayLabel": "Tageszeit",
+      "dateLabel": "Datum",
+      "daysLabel": "Tage",
+      "assignToLabel": "Zuweisen an",
+      "weeklyScheduleLabel": "Wochenplan",
+      "coverageLabel": "Abdeckung: {covered} von 7 Tagen",
+      "rotationLabel": "Wer macht's?",
+      "addSubmit": "Aufgabe hinzufügen",
+      "saveSubmit": "Aufgabe speichern",
+      "deleteButton": "Aufgabe löschen"
+    },
+    "choreDelete": {
+      "title": "„{name}“ löschen?",
+      "description": "Diese Aufgabe und der gesamte Verlauf werden entfernt.",
+      "confirmLabel": "Aufgabe löschen"
+    }
+  },
+  "mealsTab": {
+    "header": "Mahlzeiten",
+    "loading": "Mahlzeiten werden geladen…",
+    "settingsButtonAriaLabel": "Mahlzeiten-Einstellungen öffnen",
+    "settingsButtonTitle": "Einstellungen",
+    "weekLabel": {
+      "thisWeek": "Diese Woche"
+    },
+    "subNav": {
+      "plan": "Plan",
+      "library": "Bibliothek",
+      "grocery": "Einkauf"
+    },
+    "weekNav": {
+      "prevAriaLabel": "Vorherige Woche",
+      "nextAriaLabel": "Nächste Woche",
+      "todayButton": "Heute"
+    },
+    "confirm": {
+      "clearWeek": {
+        "title": "Plan leeren?",
+        "description": "Damit werden alle geplanten Mahlzeiten dieser Woche entfernt.",
+        "confirmLabel": "Woche leeren"
+      },
+      "deleteMeal": {
+        "title": "„{name}“ löschen?",
+        "description": "Damit wird die Mahlzeit auch aus allen geplanten Zeitfenstern entfernt.",
+        "confirmLabel": "Mahlzeit löschen"
+      }
+    },
+    "weekView": {
+      "todayBadge": "Heute",
+      "notPlanned": "{slot} – Nichts geplant",
+      "activeNowSuffix": " • Jetzt",
+      "prepTimeMin": "{minutes} Min.",
+      "empty": {
+        "title": "Diese Woche keine Mahlzeiten geplant",
+        "description": "Wechsle zu „Plan“, um Mahlzeiten hinzuzufügen.",
+        "planButton": "Mahlzeiten planen"
+      }
+    },
+    "library": {
+      "searchPlaceholder": "Mahlzeiten suchen…",
+      "filterByAriaLabel": "Nach {label} filtern",
+      "empty": {
+        "titleNoMeals": "Noch keine Mahlzeiten",
+        "titleNoMatches": "Keine Treffer",
+        "hintNoMeals": "Tippe auf das +, um deine erste Mahlzeit hinzuzufügen.",
+        "hintNoMatches": "Versuche eine andere Suche oder einen anderen Filter."
+      },
+      "prepTimeMin": "{minutes} Min. Vorbereitung",
+      "favoriteAddAriaLabel": "Zu Favoriten hinzufügen",
+      "favoriteRemoveAriaLabel": "Aus Favoriten entfernen",
+      "fabAriaLabel": "Neue Mahlzeit hinzufügen",
+      "filters": {
+        "all": "Alle",
+        "favorites": "Favoriten",
+        "quick": "Schnell",
+        "healthy": "Gesund",
+        "comfort": "Wohlfühl",
+        "kid-friendly": "Kindgerecht"
+      }
+    }
+  },
+  "mealForm": {
+    "titleNew": "Mahlzeit hinzufügen",
+    "titleEdit": "Mahlzeit bearbeiten",
+    "saveSubmit": "Mahlzeit speichern",
+    "saveChangesSubmit": "Änderungen speichern",
+    "savingSubmit": "Wird gespeichert…",
+    "deleteButton": "Mahlzeit löschen",
+    "nameLabel": "Name der Mahlzeit",
+    "namePlaceholder": "z. B. Hühnchen-Pfanne",
+    "emojiLabel": "Emoji",
+    "emojiSelectAriaLabel": "{emoji} auswählen",
+    "prepTimeLabel": "Vorbereitung",
+    "cookTimeLabel": "Kochzeit",
+    "minPlaceholder": "Min.",
+    "servingsLabel": "Portionen",
+    "servingsPlaceholder": "4",
+    "difficultyLabel": "Schwierigkeit",
+    "tagsLabel": "Tags",
+    "ingredientsLabel": "Zutaten",
+    "ingredientNamePlaceholder": "Name",
+    "ingredientAmountPlaceholder": "Menge",
+    "removeIngredientAriaLabel": "Zutat entfernen",
+    "addIngredientButton": "+ Zutat hinzufügen",
+    "recipeUrlLabel": "Rezept-Link",
+    "recipeUrlPlaceholder": "https://…",
+    "notesLabel": "Notizen",
+    "notesPlaceholder": "Notizen zu dieser Mahlzeit…",
+    "ratingLabel": "Bewertung",
+    "ratingStarAriaLabel": "Mit {n} von 5 Sternen bewerten",
+    "favoriteOn": "Favorit",
+    "favoriteOff": "Zu Favoriten hinzufügen"
+  },
+  "mealsPlan": {
+    "actions": {
+      "suggest": "Vorschlag",
+      "suggestAriaLabel": "Zufällige Mahlzeiten vorschlagen",
+      "copyLastWeek": "Letzte Woche kopieren",
+      "copyLastWeekAriaLabel": "Plan der letzten Woche kopieren",
+      "clear": "Leeren",
+      "clearAriaLabel": "Alle geplanten Mahlzeiten entfernen"
+    },
+    "empty": {
+      "title": "Noch keine Mahlzeiten in deiner Bibliothek",
+      "description": "Füge zuerst Mahlzeiten zur Bibliothek hinzu, dann plane deine Woche.",
+      "addMealsButton": "Mahlzeiten hinzufügen"
+    },
+    "slot": {
+      "addMeal": "+ Mahlzeit hinzufügen",
+      "planSlotAriaLabel": "{slot} für {day} planen",
+      "mealFallback": "Mahlzeit",
+      "changeMealAriaLabel": "{meal} für {slot} ändern"
+    },
+    "picker": {
+      "title": "Mahlzeit auswählen",
+      "emptyLibrary": "Keine Mahlzeiten in der Bibliothek. Füge zuerst welche hinzu.",
+      "prepTimeShort": "{minutes} Min.",
+      "removeMealButton": "Mahlzeit entfernen",
+      "subtitle": "{slot} · {day}"
+    }
+  },
+  "mealsGrocery": {
+    "itemsCountSingular": "{checked} von {total} Eintrag",
+    "itemsCountPlural": "{checked} von {total} Einträgen",
+    "shareButton": "Teilen",
+    "shareCopiedButton": "Kopiert!",
+    "autoGeneratedHint": "Automatisch aus den Mahlzeiten dieser Woche erstellt",
+    "shareHeading": "Einkaufsliste",
+    "shareCompleteMessage": "Einkaufsliste ist vollständig!",
+    "empty": {
+      "title": "Keine Einträge",
+      "description": "Plane Mahlzeiten mit Zutaten, um deine Einkaufsliste zu sehen."
+    }
+  },
+  "mealsSettings": {
+    "ariaLabel": "Mahlzeiten-Einstellungen",
+    "title": "Mahlzeiten-Einstellungen",
+    "cancelAriaLabel": "Abbrechen und schließen",
+    "slots": {
+      "heading": "Mahlzeiten",
+      "description": "Welche Mahlzeiten planst du? Das ändert, was auf dem Display und im Editor zu sehen ist.",
+      "toggleAriaLabelEnabled": "{label}, aktiviert",
+      "toggleAriaLabelDisabled": "{label}, deaktiviert"
+    },
+    "weekStart": {
+      "heading": "Woche beginnt am",
+      "sunday": "Sonntag",
+      "monday": "Montag"
+    },
+    "timeFormat": {
+      "heading": "Zeitformat",
+      "description": "Gilt überall, wo Mahlzeiten angezeigt werden.",
+      "twelveHourLabel": "12-Stunden",
+      "twentyFourHourLabel": "24-Stunden",
+      "followLabel": "Wie die Uhr"
+    },
+    "defaultTimes": {
+      "heading": "Standard-Essenszeiten",
+      "description": "Werden verwendet, wenn eine geplante Mahlzeit keine eigene Zeit hat. Lass das Feld leer für Mahlzeiten, deren Zeit variiert.",
+      "clear": "Leeren",
+      "clearAriaLabel": "Standardzeit für {name} leeren",
+      "timeInputAriaLabel": "Standardzeit für {name}"
+    },
+    "save": {
+      "saving": "Speichert …",
+      "submit": "Einstellungen speichern",
+      "saveFailed": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+      "networkError": "Netzwerkfehler. Bitte erneut versuchen."
+    }
+  },
+  "rewardForm": {
+    "titleAdd": "Belohnung hinzufügen",
+    "titleEdit": "Belohnung bearbeiten",
+    "saveButton": "Belohnung speichern",
+    "deleteButton": "Belohnung löschen",
+    "iconLabel": "Symbol",
+    "nameLabel": "Name",
+    "namePlaceholder": "z. B. Extra Bildschirmzeit",
+    "ticketCostLabel": "Ticket-Kosten",
+    "ticketCostPlaceholder": "10",
+    "enabledLabel": "Aktiv",
+    "visible": "Sichtbar",
+    "hidden": "Versteckt",
+    "descriptionLabel": "Beschreibung (optional)",
+    "descriptionPlaceholder": "Kurze Beschreibung…",
+    "availableToLabel": "Verfügbar für",
+    "everyone": "Alle",
+    "deleteConfirm": {
+      "title": "Belohnung löschen",
+      "description": "Möchtest du „{name}“ wirklich löschen? Bisherige Einlösungen bleiben erhalten."
+    }
+  },
+  "alertSender": {
+    "title": "Hinweis senden",
+    "closeAriaLabel": "Hinweis-Sender schließen",
+    "typeInfo": "Info",
+    "typeWarning": "Warnung",
+    "typeUrgent": "Dringend",
+    "titleLabel": "Titel",
+    "titlePlaceholder": "Optional",
+    "messageLabel": "Nachricht",
+    "messagePlaceholder": "Was soll auf dem Display erscheinen?",
+    "durationLabel": "Dauer",
+    "duration10s": "10 Sek.",
+    "duration30s": "30 Sek.",
+    "duration1Min": "1 Min.",
+    "duration5Min": "5 Min.",
+    "durationPersistent": "Dauerhaft",
+    "sendButton": "Hinweis senden",
+    "sendingButton": "Sendet …",
+    "sentButton": "Gesendet!",
+    "failedButton": "Nicht gesendet, erneut versuchen",
+    "clearOnDisplay": "Meldungen auf {name} löschen",
+    "clearOnAll": "Meldungen auf allen Displays löschen",
+    "clearingButton": "Wird gelöscht…",
+    "showingNow": "({count} gerade sichtbar)"
+  },
+  "rewardsView": {
+    "nav": {
+      "redeem": "Einlösen",
+      "rewards": "Liste bearbeiten",
+      "balances": "Konten",
+      "history": "Verlauf"
+    },
+    "ticketCountSingular": "{n} Ticket",
+    "ticketCountPlural": "{n} Tickets",
+    "redeem": {
+      "balanceLabel": "Tickets verfügbar",
+      "availableHeading": "Verfügbare Belohnungen",
+      "empty": "Noch keine Belohnungen eingerichtet",
+      "memberFallback": "diese Person",
+      "confirmTitle": "„{name}“ einlösen?",
+      "confirmDescriptionSingular": "Damit wird {cost} Ticket von {memberName}s Konto abgezogen. Rest: {remaining}",
+      "confirmDescriptionPlural": "Damit werden {cost} Tickets von {memberName}s Konto abgezogen. Rest: {remaining}",
+      "confirmLabelSingular": "Einlösen für {cost} Ticket",
+      "confirmLabelPlural": "Einlösen für {cost} Tickets",
+      "emptyKid": "Noch keine Belohnungen. Ein Erwachsener kann welche am Handy hinzufügen.",
+      "balanceLabelNamed": "Tickets von {name}",
+      "switchHint": "Nicht {name}? Wähle deinen Namen im Tab „Heute“."
+    },
+    "manage": {
+      "heading": "Belohnungen",
+      "countSingular": "{n} Belohnung",
+      "countPlural": "{n} Belohnungen",
+      "everyone": "Alle",
+      "disabled": "Deaktiviert",
+      "memberCountSingular": "{n} Mitglied",
+      "memberCountPlural": "{n} Mitglieder",
+      "addButton": "Belohnung hinzufügen"
+    },
+    "balances": {
+      "heading": "Ticketkonten",
+      "adjustDownAriaLabel": "Ein Ticket von {name} abziehen",
+      "adjustUpAriaLabel": "Ein Ticket zu {name} hinzufügen"
+    },
+    "history": {
+      "heading": "Letzte Einlösungen",
+      "empty": "Noch keine Einlösungen",
+      "entry": {
+        "beforeReward": " hat ",
+        "afterRewardSingular": " eingelöst für {n} Ticket",
+        "afterRewardPlural": " eingelöst für {n} Tickets"
+      }
+    },
+    "saveFailed": "Speichern fehlgeschlagen. Bitte erneut versuchen."
+  },
+  "settingsSheet": {
+    "title": "Einstellungen",
+    "closeAriaLabel": "Einstellungen schließen",
+    "system": {
+      "heading": "System",
+      "errorFailedToLoad": "Laden fehlgeschlagen",
+      "hostLabel": "Gerätename",
+      "uptimeLabel": "Laufzeit",
+      "memoryLabel": "Speicher",
+      "diskLabel": "Festplatte"
+    },
+    "theme": {
+      "heading": "Thema",
+      "light": "Hell",
+      "dark": "Dunkel",
+      "system": "System"
+    },
+    "data": {
+      "heading": "Daten",
+      "backup": {
+        "label": "Alles sichern",
+        "savedLabel": "Backup gespeichert",
+        "busyLabel": "Lädt herunter…",
+        "description": "Lade Konfiguration, Aufgaben, Mahlzeiten und Belohnungen herunter"
+      },
+      "restore": {
+        "label": "Backup wiederherstellen",
+        "confirmingLabel": "Erneut tippen zum Wiederherstellen",
+        "busyLabel": "Stelle wieder her…",
+        "doneLabel": "Wiederhergestellt",
+        "invalidFileLabel": "Ungültige Backup-Datei",
+        "failedLabel": "Wiederherstellung fehlgeschlagen",
+        "idleDescription": "Lade eine Backup-Datei von diesem Gerät hoch",
+        "confirmingDescription": "Damit werden alle vorhandenen Daten ersetzt",
+        "doneWithoutKeysLabel": "Wiederhergestellt, ohne Schlüssel",
+        "doneWithoutKeysDescription": "Deine Schlüssel und Konten bleiben unverändert. Trag sie im Editor wieder ein."
+      }
+    },
+    "power": {
+      "heading": "Energie",
+      "restartService": {
+        "label": "Home Screens neu starten",
+        "description": "Behebt die meisten Aussetzer. Nichts Eingerichtetes geht verloren.",
+        "confirmTitle": "Home Screens neu starten?",
+        "confirmBody": "Die Displays werden kurz schwarz, und diese Fernbedienung verbindet sich in etwa 20 Sekunden wieder.",
+        "confirmButton": "Neu starten"
+      },
+      "reboot": {
+        "label": "Gerät neu starten",
+        "description": "Vollständiger System-Neustart",
+        "confirmTitle": "Gerät neu starten?",
+        "confirmBody": "Während des Neustarts steht alles still. Diese Fernbedienung verbindet sich in etwa einer Minute wieder.",
+        "confirmButton": "Neu starten"
+      }
+    }
+  },
+  "photosTab": {
+    "header": "Fotos",
+    "newFolderButton": "Neuer Ordner",
+    "newFolderPlaceholder": "Ordnername",
+    "createButton": "Erstellen",
+    "uploadingProgress": "Lädt hoch {current} von {total}…",
+    "uploadFailedFor": "Hochladen fehlgeschlagen für {name}",
+    "uploadFailed": "Hochladen fehlgeschlagen",
+    "uploadedSingular": "{n} Foto hochgeladen",
+    "uploadedPlural": "{n} Fotos hochgeladen",
+    "photoDeleted": "Foto gelöscht",
+    "deleteFailed": "Foto konnte nicht gelöscht werden",
+    "folderCreated": "Ordner erstellt",
+    "failedCreateFolder": "Ordner konnte nicht erstellt werden",
+    "uploadButton": "Fotos hochladen",
+    "emptyTitle": "Keine Fotos in diesem Ordner",
+    "emptyHint": "Tippe auf „Fotos hochladen“, um Bilder hinzuzufügen",
+    "deletingButton": "Lösche…",
+    "deleteAriaLabel": "Foto löschen",
+    "dismissErrorAriaLabel": "Fehler schließen",
+    "mainFolderTab": "Hauptordner",
+    "deleteConfirmTitle": "Dieses Foto löschen?",
+    "deleteConfirmDescription": "Es verschwindet vom Display und endgültig aus der Fotobibliothek.",
+    "savedAsHint": "Wird gespeichert als {name}"
+  },
+  "choresKidView": {
+    "notConfigured": "Noch keine Aufgaben. Bitte einen Erwachsenen, eine Aufgabentafel zum Display hinzuzufügen.",
+    "grownUpsLink": "Für Erwachsene: Familien-Fernbedienung öffnen"
+  },
+  "mealTimeChip": {
+    "servingTimeAria": "Servierzeit {time}, zum Ändern klicken",
+    "servingTimeTitle": "Servierzeit: {time}",
+    "setServingTime": "Servierzeit festlegen",
+    "setTime": "+ Zeit festlegen",
+    "setMealTime": "Mahlzeit-Zeit festlegen",
+    "servingTime": "Servierzeit",
+    "clearTime": "Zeit löschen"
+  },
+  "timers": {
+    "title": "Timer",
+    "quickTimer": "Schnell-Timer",
+    "quickName": "{minutes}-Minuten-Timer",
+    "start": "Start",
+    "sound": "Ton",
+    "routines": "Routinen",
+    "newRoutine": "Neue Routine",
+    "editRoutine": "Routine bearbeiten",
+    "emptyHint": "Eine Routine ist ein Timer mit Schritten, z. B. eine Morgenroutine: anziehen, Zähne putzen, Bett machen. Erstelle eine und starte sie auf dem Display.",
+    "routineMeta": "{steps} Schritte · {minutes} Min.",
+    "stepCount": "Schritt {current} von {total}",
+    "pause": "Pause",
+    "resume": "Weiter",
+    "skip": "Überspringen",
+    "stop": "Stopp",
+    "addMinute": "+1 Min.",
+    "done": "Fertig!",
+    "save": "Speichern",
+    "deleteRoutine": "Löschen",
+    "reallyDelete": "Wirklich löschen?",
+    "routineName": "Name",
+    "routineNamePlaceholder": "Morgenroutine",
+    "routineIcon": "Symbol",
+    "viewLabel": "Timer-Stil",
+    "viewRing": "Leuchtring",
+    "viewFace": "Zifferblatt",
+    "viewCascade": "Farbfall",
+    "viewPath": "Sternenpfad",
+    "steps": "Schritte",
+    "stepIcon": "Schritt-Symbol",
+    "stepNamePlaceholder": "Was ist zu tun?",
+    "stepMinutes": "Minuten",
+    "waitForTap": "Auf Fertig-Tippen warten",
+    "moveUp": "Nach oben",
+    "moveDown": "Nach unten",
+    "removeStep": "Schritt entfernen",
+    "addStep": "Schritt hinzufügen",
+    "minutesShort": "{minutes} Min.",
+    "loadError": "Routinen konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut.",
+    "retry": "Erneut versuchen",
+    "onAllDisplays": "Auf allen Displays",
+    "onDisplay": "Auf {name}",
+    "showOn": "Senden an",
+    "allDisplays": "Alle Displays",
+    "showOnNext": "Nächster Timer auf",
+    "onDisplays": "Auf {count} Displays",
+    "replaceTitle": "Neuen Timer starten?",
+    "replaceBody": "Es läuft schon ein Timer. Ein neuer Timer beendet ihn.",
+    "soundOn": "Ton an",
+    "soundOff": "Ton aus",
+    "minUnit": "Min.",
+    "secUnit": "Sek.",
+    "stepSeconds": "Sekunden",
+    "quickNameSeconds": "{seconds}-Sekunden-Timer",
+    "quickNameClock": "{time}-Timer",
+    "secondsShort": "{seconds} Sek.",
+    "showingOn": "Läuft auf {names}",
+    "showingOnDisplay": "Läuft auf dem Display",
+    "waitingForDisplay": "Warte, bis ein Display ihn übernimmt…",
+    "notShowing": "Noch kein Display zeigt ihn an. Prüfe, ob ein Display eingeschaltet ist."
+  },
+  "formOverlay": {
+    "discard": {
+      "title": "Änderungen verwerfen?",
+      "description": "Deine Änderungen wurden noch nicht gespeichert.",
+      "confirmLabel": "Verwerfen",
+      "keepEditing": "Weiter bearbeiten"
+    }
+  },
+  "feedback": {
+    "alertSent": "Meldung an {name} gesendet",
+    "alertSentAll": "Meldung an alle Displays gesendet",
+    "alertsCleared": "Meldungen auf {name} gelöscht",
+    "alertsClearedAll": "Meldungen auf allen Displays gelöscht",
+    "noConfirm": "{name} hat nicht geantwortet. Vielleicht ist es aus oder offline.",
+    "profileSwitched": "{name} zeigt jetzt {profile}",
+    "profileCleared": "{name} zeigt alle Bildschirme",
+    "profileFailed": "Das Profil auf {name} konnte nicht gewechselt werden",
+    "hubBack": "Home Screens ist wieder da"
+  },
+  "tabNotSetUp": {
+    "chores": {
+      "title": "Noch keine Aufgabentafel",
+      "body": "Aufgaben erscheinen hier, sobald eine Aufgabentafel auf einem deiner Bildschirme liegt."
+    },
+    "meals": {
+      "title": "Noch kein Essensplan",
+      "body": "Essenspläne erscheinen hier, sobald ein Essensplaner auf einem deiner Bildschirme liegt."
+    },
+    "photos": {
+      "title": "Noch keine Diashow",
+      "body": "Fotos erscheinen hier, sobald eine Diashow auf einem deiner Bildschirme liegt."
+    },
+    "howTo": "Füge sie am Computer hinzu: Öffne {url} und lege sie auf einen Bildschirm."
+  }
+}

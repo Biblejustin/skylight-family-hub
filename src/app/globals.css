@@ -1,0 +1,477 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   Theme tokens — dark on :root (the default), light on [data-theme="light"].
+   The bootstrap script in layout.tsx resolves "system" to one of these two
+   before first paint, so CSS never needs a "system" selector.
+   ============================================================================ */
+
+:root {
+  /* DARK — the default. Captured from current Tailwind class usage. */
+  color-scheme: dark;
+  --hs-bg-body:        #0a0a0a;
+  --hs-bg-panel:       #171717;
+  --hs-bg-card:        #262626;
+  --hs-bg-canvas:      #0f0f0f;
+  --hs-bg-input:       #1f1f1f;
+  --hs-bg-input-hover: #262626;
+  --hs-bg-hover:       #2e2e2e;
+  --hs-bg-active:      #333333;
+
+  --hs-border:         #262626;
+  --hs-border-strong:  #404040;
+  --hs-border-subtle:  #1f1f1f;
+
+  --hs-text-primary:   #f5f5f5;
+  --hs-text-body:      #e5e5e5;
+  --hs-text-secondary: #d4d4d4;
+  --hs-text-muted:     #a3a3a3;
+  --hs-text-faint:     #737373;
+
+  --hs-accent:         #3b82f6;
+  --hs-accent-hover:   #60a5fa;
+  --hs-accent-soft:    rgba(59, 130, 246, 0.10);
+  --hs-accent-ring:    rgba(59, 130, 246, 0.30);
+
+  --hs-success:        #22c55e;
+  --hs-danger:         #f87171;
+  --hs-warning:        #f59e0b;
+
+  /* Kid-surface tokens (dark). Distinguishes the ungated /chores page from
+     the password-protectable /remote wherever both are offered — same shape,
+     different audience, and the colour is the only thing that says so at a
+     glance. */
+  --hs-kid:            #c084fc;
+  --hs-kid-soft:       rgba(168, 85, 247, 0.10);
+  --hs-kid-ring:       rgba(168, 85, 247, 0.32);
+  --hs-kid-hover:      rgba(168, 85, 247, 0.18);
+
+  /* Property-panel subgroup card (dark) */
+  --hs-group-card-bg:      #1e2128;
+  --hs-group-card-border:  #24272f;
+  --hs-group-card-shadow:  0 1px 0 rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.25);
+  --hs-group-title:        #b8bcc5;
+
+  /* Property-panel subgroup accent underlines (dark) */
+  --hs-group-accent-1: #5b7cfa; /* blue */
+  --hs-group-accent-2: #f59e0b; /* amber */
+  --hs-group-accent-3: #10b981; /* green */
+  --hs-group-accent-4: #a78bfa; /* violet */
+
+  --hs-logo-wordmark:    rgba(103, 232, 249, 0.9);
+}
+
+[data-theme="light"] {
+  /* LIGHT — elevation-layered palette for depth and reduced glare.
+     Hierarchy (darkest → lightest): canvas → body → panel → card.
+     Total lightness spread ≈ 9 % (vs ≈ 4 % before). */
+  color-scheme: light;
+  --hs-bg-body:        #eef0f3;
+  --hs-bg-panel:       #f5f6f8;
+  --hs-bg-card:        #f9fafc;
+  --hs-bg-canvas:      #e6e8ed;
+  --hs-bg-input:       #f0f2f5;
+  --hs-bg-input-hover: #e8eaef;
+  --hs-bg-hover:       #e8ebf0;
+  --hs-bg-active:      #dce4f5;
+
+  --hs-border:         #cdd2db;
+  --hs-border-strong:  #c0c6d1;
+  --hs-border-subtle:  #d8dce4;
+
+  --hs-text-primary:   #0f172a;
+  --hs-text-body:      #1f2937;
+  --hs-text-secondary: #475569;
+  --hs-text-muted:     #64748b;
+  --hs-text-faint:     #94a3b8;
+
+  --hs-accent:         #2563eb;
+  --hs-accent-hover:   #1d4ed8;
+  --hs-accent-soft:    #dbeafe;
+  --hs-accent-ring:    rgba(37, 99, 235, 0.22);
+
+  --hs-success:        #059669;
+  --hs-danger:         #dc2626;
+  --hs-warning:        #d97706;
+
+  /* Kid-surface tokens (light) */
+  --hs-kid:            #7e22ce;
+  --hs-kid-soft:       #f5edff;
+  --hs-kid-ring:       rgba(126, 34, 206, 0.24);
+  --hs-kid-hover:      #ecdcff;
+
+  /* Property-panel subgroup card (light) */
+  --hs-group-card-bg:      #ffffff;
+  --hs-group-card-border:  #dde1e8;
+  --hs-group-card-shadow:  0 1px 0 rgba(15,23,42,0.04), 0 1px 2px rgba(15,23,42,0.06);
+  --hs-group-title:        #1f2937;
+
+  /* Property-panel subgroup accent underlines (light) */
+  --hs-group-accent-1: #3b62f0; /* blue */
+  --hs-group-accent-2: #b45309; /* amber */
+  --hs-group-accent-3: #047857; /* green */
+  --hs-group-accent-4: #7c3aed; /* violet */
+
+  --hs-logo-wordmark:    #0e7490;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter);
+
+  /* Semantic z-index scale */
+  --z-index-modal: 60;
+  --z-index-confirm: 70;
+  --z-index-nested: 80;
+
+  /* Background tokens */
+  --color-hs-body:         var(--hs-bg-body);
+  --color-hs-panel:        var(--hs-bg-panel);
+  --color-hs-card:         var(--hs-bg-card);
+  --color-hs-canvas:       var(--hs-bg-canvas);
+  --color-hs-input:        var(--hs-bg-input);
+  --color-hs-input-hover:  var(--hs-bg-input-hover);
+  --color-hs-hover:        var(--hs-bg-hover);
+  --color-hs-active:       var(--hs-bg-active);
+
+  /* Border tokens */
+  --color-hs-border:        var(--hs-border);
+  --color-hs-border-strong: var(--hs-border-strong);
+  --color-hs-border-subtle: var(--hs-border-subtle);
+
+  /* Text tokens */
+  --color-hs-text-primary:   var(--hs-text-primary);
+  --color-hs-text-body:      var(--hs-text-body);
+  --color-hs-text-secondary: var(--hs-text-secondary);
+  --color-hs-text-muted:     var(--hs-text-muted);
+  --color-hs-text-faint:     var(--hs-text-faint);
+
+  /* Accent tokens */
+  --color-hs-accent:        var(--hs-accent);
+  --color-hs-accent-hover:  var(--hs-accent-hover);
+  --color-hs-accent-soft:   var(--hs-accent-soft);
+  --color-hs-accent-ring:   var(--hs-accent-ring);
+
+  /* Brand tokens */
+  --color-hs-logo-wordmark: var(--hs-logo-wordmark);
+
+  /* Semantic tokens */
+  --color-hs-success:  var(--hs-success);
+  --color-hs-danger:   var(--hs-danger);
+  --color-hs-warning:  var(--hs-warning);
+
+  /* Kid-surface tokens */
+  --color-hs-kid:       var(--hs-kid);
+  --color-hs-kid-soft:  var(--hs-kid-soft);
+  --color-hs-kid-ring:  var(--hs-kid-ring);
+  --color-hs-kid-hover: var(--hs-kid-hover);
+
+  /* Property-panel subgroup tokens */
+  --color-hs-group-card-bg:     var(--hs-group-card-bg);
+  --color-hs-group-card-border: var(--hs-group-card-border);
+  --color-hs-group-title:       var(--hs-group-title);
+  --color-hs-group-accent-1:    var(--hs-group-accent-1);
+  --color-hs-group-accent-2:    var(--hs-group-accent-2);
+  --color-hs-group-accent-3:    var(--hs-group-accent-3);
+  --color-hs-group-accent-4:    var(--hs-group-accent-4);
+}
+
+body {
+  background: var(--hs-bg-body);
+  color: var(--hs-text-body);
+  /* The app's own face, not the Next.js scaffold's Arial. Only the editor and
+     auth trees carried `font-sans`, so every module on /display, /remote and
+     /chores inherited Arial instead of Inter: different glyph widths, and no
+     weight below 400 on a Pi (fontconfig resolves Arial to Liberation Sans,
+     which ships Regular and Bold only). That also moved layout, not just
+     glyphs -- useFitScale bisects against measured text, so the display
+     settled on a different scale factor than the editor previewed. */
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+.cursor-idle,
+.cursor-idle * {
+  cursor: none !important;
+}
+
+/* Modules hard-code their designed font weights (font-light classes, inline
+   300s), so a weight inherited from ModuleWrapper never reaches most text.
+   ModuleWrapper adds this class only when the user picks a weight in the
+   Style panel. Exclusions: Font Awesome glyphs select their variant via
+   font-weight, so forcing it would swap or blank the icon (matched by the
+   bare .fa that buildIconClass always prepends, plus fa-* prefixed classes
+   as defense); strong/b are excluded because markdown emphasis is user
+   content, not module chrome — the UA's `font-weight: bolder` then keeps
+   them one step above the forced weight (bolder(400) = 700). The module
+   title strip needs no exclusion: on titled cards ModuleWrapper puts this
+   class on the content box, so the strip is a sibling outside the override
+   subtree and keeps its normal weight by structure. */
+.module-weight-override,
+.module-weight-override *:not(.fa):not([class^="fa-"]):not([class*=" fa-"]):not(strong):not(b) {
+  font-weight: var(--module-font-weight) !important;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ============================================================================
+   Themed scrollbars. Without color-scheme (declared on :root /
+   [data-theme="light"] above) Chromium paints the UA's light scrollbar and
+   light native controls inside a dark editor; color-scheme fixes the UA
+   rendering, and the rules below tint the bars to the theme. The two blocks
+   are mutually exclusive paths, split by @supports:
+   - Engines with the standard properties (Chromium ≥121, Firefox, future
+     Safari) get scrollbar-width/scrollbar-color. Once these are non-auto,
+     those engines ignore ::-webkit-scrollbar-* styling entirely, so webkit
+     rules would be dead weight in this branch.
+   - Safari (no working scrollbar-color as of 26.x) gets the webkit rules:
+     slim rounded thumb floating over the content via the transparent-border
+     + background-clip padding-box trick (the inset shows whatever sits
+     behind, so the same rule works on panels, cards, and modals). The guard
+     self-retires in any Safari that ships working scrollbar-color.
+   Surfaces that opt out (.scrollbar-none, the fullscreen kiosk modules)
+   still win: a display:none scrollbar ignores width/background, and class
+   specificity beats the * selector.
+   ============================================================================ */
+
+@supports (scrollbar-color: auto) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--hs-border-strong) transparent;
+  }
+}
+
+@supports not (scrollbar-color: auto) {
+  * {
+    &::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background-color: var(--hs-border-strong);
+      border-radius: 9999px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: color-mix(in srgb, var(--hs-border-strong) 70%, var(--hs-text-body));
+    }
+    &::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+  }
+}
+
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Highlight sweep across the upgrade modal's progress bar while running */
+@keyframes hs-shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+/* Gentle breathing of the timer overlay's almost-done state — a nudge,
+   never an alarm (see TimerOverlay). */
+@keyframes hs-timer-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+/* Slow confetti drift on the timer celebration screen. Each piece sets its
+   own base rotation via --hs-confetti-rotate (an animated transform would
+   otherwise override the inline one). */
+@keyframes hs-timer-confetti {
+  from { transform: translateY(0) rotate(var(--hs-confetti-rotate, 0deg)); }
+  to { transform: translateY(28px) rotate(calc(var(--hs-confetti-rotate, 0deg) + 40deg)); }
+}
+
+.animate-ticker-scroll {
+  animation: ticker-scroll linear infinite;
+}
+
+/* Pulse a settings field after a search-result click scrolls it into view.
+   Mixed directly off --hs-accent rather than the --hs-accent-soft/-ring
+   tokens: those are tuned for subtle persistent states (focus rings,
+   selected cards) and read as nearly invisible for a one-shot attention
+   flash in dark mode, where -soft is only 10% opacity. */
+@keyframes hs-settings-highlight {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--hs-accent) 60%, transparent);
+    background-color: color-mix(in srgb, var(--hs-accent) 25%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 10px transparent;
+    background-color: color-mix(in srgb, var(--hs-accent) 25%, transparent);
+  }
+  100% { box-shadow: 0 0 0 0 transparent; background-color: transparent; }
+}
+
+.animate-settings-highlight {
+  animation: hs-settings-highlight 1.8s ease-out;
+  border-radius: 0.5rem;
+}
+
+/* Settings sidebar scroller.
+   The nav list overflows on a 720px-tall window: at 1280x720 it needs about
+   800px in roughly 560px, so Per display and every display row fall below the
+   fold. With an overlay scrollbar there was no thumb, no fade and no gutter,
+   and the list simply ended mid-row against the footer border, which reads as
+   the end of the list rather than the middle of it. A reserved gutter with a
+   permanently visible thumb says "there is more" without anyone having to
+   move the mouse. */
+.settings-sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--hs-border-strong) transparent;
+  scrollbar-gutter: stable;
+}
+
+.settings-sidebar-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.settings-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--hs-border-strong);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.settings-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: var(--hs-text-faint);
+}
+
+/* Confirmation that an auto-save carried this field, applied by
+   `useSavedFieldFlash`. An outline rather than a border or an inserted
+   element: it is painted outside the box model, so a field acknowledging a
+   save never nudges its neighbours or breaks a two-column grid's alignment. */
+@keyframes hs-settings-field-saved {
+  0%   { outline-color: var(--color-hs-success); }
+  70%  { outline-color: var(--color-hs-success); }
+  100% { outline-color: transparent; }
+}
+
+.settings-field-saved {
+  outline: 2px solid var(--color-hs-success);
+  outline-offset: 3px;
+  border-radius: 0.5rem;
+  animation: hs-settings-field-saved 1.5s ease-out forwards;
+}
+
+/* ============================================================================
+   View Transitions API — suppress default crossfade so we apply custom
+   animations via WAAPI. Pagination dots and sleep overlay are excluded from
+   the transition so they stay stable while screens animate.
+   ============================================================================ */
+
+::view-transition {
+  background: #000;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-old(pagination),
+::view-transition-new(pagination),
+::view-transition-group(pagination) {
+  animation: none;
+}
+
+::view-transition-old(sleep-overlay),
+::view-transition-new(sleep-overlay) {
+  animation: none;
+}
+
+::view-transition-group(sleep-overlay) {
+  animation: none;
+  z-index: 9997;
+}
+
+/* Timer takeover opts out of screen-rotation transitions the same way the
+   sleep overlay does; later rule wins the z tie so a running timer paints
+   over the sleep dim during a transition, matching the DOM order. */
+::view-transition-old(timer-overlay),
+::view-transition-new(timer-overlay) {
+  animation: none;
+}
+
+::view-transition-group(timer-overlay) {
+  animation: none;
+  z-index: 9997;
+}
+
+/* ============================================================================
+   Mobile tap feedback — inline styles can't express :active, so these utility
+   classes provide press-state transforms matching the remote-chores mockup.
+   ============================================================================ */
+
+.press-scale:active {
+  transform: scale(0.98);
+}
+
+.press-scale-sm:active {
+  transform: scale(0.95);
+}
+
+.press-scale-xs:active {
+  transform: scale(0.9);
+}
+
+.press-btn:active {
+  transform: scale(0.98);
+  opacity: 0.8;
+}
+
+.press-dot:active {
+  transform: scale(0.88);
+  opacity: 0.7;
+}
+
+
+/* ── Small celebratory motions on the phone surfaces ──────────────────
+   `hs-pop-in` brings a banner in with a little overshoot (the "all done"
+   celebration on the chores Today view); `hs-pulse-once` makes a number
+   swell for a beat when it changes (the ticket balance ticking up). Both
+   are keyed on the value so React restarts them, and both stand down for
+   people who asked for reduced motion. */
+@keyframes hs-pop-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  60%  { opacity: 1; transform: translateY(0) scale(1.03); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes hs-pulse-once {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+.hs-pop-in {
+  animation: hs-pop-in 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+}
+
+.hs-pulse-once {
+  animation: hs-pulse-once 0.45s ease-out both;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hs-pop-in,
+  .hs-pulse-once {
+    animation: none;
+  }
+}

@@ -1,0 +1,37 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { requestDeviceCode, pollDeviceToken } from '@/lib/google-auth';
+import { withAuth, parseJsonBody } from '@/lib/api-utils';
+
+export const dynamic = 'force-dynamic';
+
+/** POST — start device flow, returns user_code + verification_url */
+export const POST = withAuth(async () => {
+  try {
+    const data = await requestDeviceCode();
+    return NextResponse.json(data);
+  } catch (error) {
+    // Surface the actual error so the user knows what to fix.
+    // Include masked client ID so they can verify the right one is configured.
+    const message = error instanceof Error ? error.message : 'Failed to start device flow';
+    let clientIdHint: string | undefined;
+    try {
+      const { getSecret } = await import('@/lib/secrets');
+      const id = await getSecret('google_client_id');
+      if (id) clientIdHint = id.length > 32 ? id.slice(0, 8) + '…' + id.slice(-24) : id;
+    } catch { /* ignore */ }
+    return NextResponse.json({ error: message, clientIdHint }, { status: 500 });
+  }
+}, 'Failed to start device flow');
+
+/** PUT — poll for token completion. Body: { device_code } */
+export const PUT = withAuth(async (request: NextRequest) => {
+  const body = await parseJsonBody<{ device_code?: string }>(request);
+  if (body instanceof NextResponse) return body;
+  const { device_code } = body;
+  if (!device_code) {
+    return NextResponse.json({ error: 'Missing device_code' }, { status: 400 });
+  }
+  const result = await pollDeviceToken(device_code);
+  return NextResponse.json(result);
+}, 'Poll failed');

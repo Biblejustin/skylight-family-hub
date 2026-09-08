@@ -1,0 +1,871 @@
+import { NextRequest, NextResponse } from 'next/server';
+import type { SetupNeed, SetupErrorBody, SetupPage } from '@/lib/fetch-error';
+import { readConfig } from '@/lib/config';
+import { requireSession, requireDisplayAuth, getMediaTokenSecret } from '@/lib/auth';
+import { verifyMediaToken } from '@/lib/media-token';
+import { getSecret, type SecretKey } from '@/lib/secrets';
+import { CLIENT_IP_HEADER } from '@/lib/client-ip';
+import { logger } from '@/lib/logger';
+
+const log = logger('api');
+/**
+ * Standardized error response for API routes.
+ *
+ * Returns `{ error: fallbackMessage, detail: error.message }`. `detail` is
+ * deliberately surfaced to clients — the Plugin Store and other admin UIs
+ * render it as diagnostic text so operators can see what actually failed
+ * (e.g. "flat tarball", "invalid manifest", upstream HTTP status). The full
+ * error is also logged server-side.
+ *
+ * Threat model: every route using this helper is behind admin auth
+ * (`withAuth` / `withDisplayAuth`) except `/api/auth/login`, which only
+ * throws on infra failures (e.g. config read errors) — not on bad
+ * credentials. `error.message` from Node builtins can include file paths,
+ * upstream URLs, or command stderr, which is acceptable for authenticated
+ * admin-only surfaces. Do NOT use this helper on unauthenticated public
+ * endpoints; use `publicErrorResponse` there instead.
+ */
+export function errorResponse(
+  error: unknown,
+  fallbackMessage: string,
+  status = 500,
+): NextResponse {
+  if (error instanceof SetupError) {
+    log.warn(fallbackMessage, error.message);
+    return setupErrorResponse(error.message, error.needs, error.service, error.page);
+  }
+  const detail = error instanceof Error ? error.message : undefined;
+  log.error(fallbackMessage, error);
+  return NextResponse.json({ error: fallbackMessage, detail }, { status });
+}
+
+/**
+ * A failure the household can fix in the editor (missing or rejected API key,
+ * a service that was never connected), as opposed to an upstream outage.
+ * `errorResponse` turns it into a 400 carrying `code: 'setup'`, which the
+ * display renders as a calm setup card instead of red developer text.
+ */
+export class SetupError extends Error {
+  constructor(
+    message: string,
+    public readonly needs: SetupNeed,
+    public readonly service: string,
+    /** Defaults page that holds the missing field; API keys unless said otherwise. */
+    public readonly page?: SetupPage,
+  ) {
+    super(message);
+    this.name = 'SetupError';
+  }
+}
+
+export function setupErrorResponse(
+  message: string,
+  needs: SetupNeed,
+  service: string,
+  page?: SetupPage,
+  /** 400 by default; routes whose callers key off 401 for "reconnect" keep it. */
+  status = 400,
+): NextResponse {
+  const body: SetupErrorBody = { error: message, code: 'setup', setup: { needs, service, ...(page ? { page } : {}) } };
+  return NextResponse.json(body, { status });
+}
+
+/**
+ * Error response for UNAUTHENTICATED public endpoints (kid-view chores and
+ * rewards, plugin registry, pre-login auth status). Logs the full error
+ * server-side but never emits a `detail` field — `error.message` from Node
+ * builtins can carry absolute install paths (e.g. an EACCES on
+ * `data/chore-completions.json`) that must not reach an anonymous LAN
+ * caller. Keep the split greppable: public route → publicErrorResponse,
+ * auth-wrapped route → errorResponse.
+ */
+export function publicErrorResponse(
+  error: unknown,
+  fallbackMessage: string,
+  status = 500,
+): NextResponse {
+  log.error(fallbackMessage, error);
+  return NextResponse.json({ error: fallbackMessage }, { status });
+}
+
+/**
+ * Fetch wrapper that enforces a timeout and retries transient failures.
+ * All external HTTP calls in the codebase flow through this function,
+ * so adding retry here gives automatic resilience to every API route.
+ *
+ * Backwards-compatible: existing callers that only pass `timeout` keep working.
+ * New callers can pass `retries`, `baseDelayMs`, `maxDelayMs` to customize.
+ */
+export function fetchWithTimeout(
+  url: string | URL | Request,
+  init?: FetchRetryOptions,
+): Promise<Response> {
+  return fetchWithRetry(url, init);
+}
+
+/**
+ * Returns true for HTTP status codes that indicate a transient failure
+ * worth retrying: 429 (rate-limited) and 5xx (server errors).
+ */
+export function isTransientError(status: number): boolean {
+  return status === 429 || (status >= 500 && status < 600);
+}
+
+/**
+ * True iff `s` is a YYYY-MM-DD string AND the components are a real calendar
+ * date. Rejects junk like "2026-99-99" (which the format check alone would
+ * accept). Shared by every route that takes a date parameter.
+ */
+export function isValidISODate(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const [y, m, d] = s.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+}
+
+/**
+ * Parses a `Retry-After` header value (delay-seconds only, not HTTP-date).
+ * Returns the delay in milliseconds, clamped to 60s to prevent an upstream
+ * from stalling us indefinitely. Returns null if the header is absent or unparseable.
+ */
+const MAX_RETRY_AFTER_MS = 60_000;
+
+export function parseRetryAfter(header: string | null): number | null {
+  if (!header) return null;
+  const seconds = Number(header);
+  if (!Number.isFinite(seconds) || seconds < 0) return null;
+  return Math.min(seconds * 1000, MAX_RETRY_AFTER_MS);
+}
+
+export interface FetchRetryOptions extends RequestInit {
+  /** Per-attempt timeout in ms (passed to AbortSignal.timeout). Default: 10_000. */
+  timeout?: number;
+  /** Number of retries after the initial attempt. 0 = no retries. Default: 2. */
+  retries?: number;
+  /** Initial backoff delay in ms. Doubles each retry. Default: 500. */
+  baseDelayMs?: number;
+  /** Maximum backoff delay in ms. Default: 5_000. */
+  maxDelayMs?: number;
+}
+
+const DEFAULT_FETCH_TIMEOUT_MS = 10_000;
+const DEFAULT_RETRIES = 2;
+const DEFAULT_BASE_DELAY_MS = 500;
+const DEFAULT_MAX_DELAY_MS = 5_000;
+
+/**
+ * Fetch with timeout + automatic retry on transient failures.
+ *
+ * Retries on 5xx, 429, network errors (TypeError), and timeouts.
+ * Does NOT retry on 4xx (client errors) or caller-initiated aborts.
+ * Respects the `Retry-After` response header when present.
+ * Uses exponential backoff: baseDelayMs * 2^attempt, capped at maxDelayMs.
+ */
+export async function fetchWithRetry(
+  url: string | URL | Request,
+  init?: FetchRetryOptions,
+): Promise<Response> {
+  const {
+    timeout = DEFAULT_FETCH_TIMEOUT_MS,
+    retries = DEFAULT_RETRIES,
+    baseDelayMs = DEFAULT_BASE_DELAY_MS,
+    maxDelayMs = DEFAULT_MAX_DELAY_MS,
+    ...rest
+  } = init ?? {};
+
+  let lastResponse: Response | undefined;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const timeoutSignal = AbortSignal.timeout(timeout);
+      const signal = rest.signal
+        ? AbortSignal.any([rest.signal, timeoutSignal])
+        : timeoutSignal;
+
+      const response = await fetch(url, { ...rest, signal });
+
+      if (!isTransientError(response.status) || attempt === retries) {
+        return response;
+      }
+
+      // Transient error — schedule a retry
+      lastResponse = response;
+      const retryAfterMs = parseRetryAfter(response.headers?.get('Retry-After') ?? null);
+      const backoffMs = Math.min(baseDelayMs * 2 ** attempt, maxDelayMs);
+      const delayMs = retryAfterMs ?? backoffMs;
+
+      await delay(delayMs, rest.signal);
+    } catch (error) {
+      // Caller-initiated abort — don't retry
+      if (rest.signal?.aborted) throw error;
+
+      // Network errors (TypeError) and timeouts are retryable
+      const isRetryable =
+        error instanceof TypeError ||
+        (error instanceof DOMException && error.name === 'TimeoutError');
+
+      if (!isRetryable || attempt === retries) {
+        throw error;
+      }
+
+      lastError = error;
+      const backoffMs = Math.min(baseDelayMs * 2 ** attempt, maxDelayMs);
+      await delay(backoffMs, rest.signal);
+    }
+  }
+
+  // Should be unreachable, but satisfy TypeScript
+  if (lastResponse) return lastResponse;
+  throw lastError;
+}
+
+/** Promise-based delay that rejects early if the signal is aborted. */
+function delay(ms: number, signal?: AbortSignal | null): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason);
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal!.reason);
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+/**
+ * Reads lat/lon from config (with weather settings fallback),
+ * allowing override from searchParams. Returns null if missing.
+ */
+export async function getLocationFromConfig(
+  searchParams?: URLSearchParams,
+  existingConfig?: Awaited<ReturnType<typeof readConfig>>,
+): Promise<{ lat: string; lon: string } | null> {
+  let config = existingConfig;
+  if (!config) {
+    try {
+      config = await readConfig();
+    } catch {
+      // config not available
+    }
+  }
+  const s = config?.settings;
+  const ws = s?.weather;
+  const lat =
+    searchParams?.get('lat') ?? s?.latitude?.toString() ?? ws?.latitude?.toString();
+  const lon =
+    searchParams?.get('lon') ?? s?.longitude?.toString() ?? ws?.longitude?.toString();
+  if (!lat || !lon) return null;
+  return { lat, lon };
+}
+
+/**
+ * Creates a simple in-memory cache with TTL expiration.
+ * Expired entries are cleaned up on access and when at capacity.
+ */
+const SERVER_CACHE_MAX_ENTRIES = 50;
+
+export function createTTLCache<T>(ttlMs: number) {
+  const cache = new Map<string, { data: T; expiresAt: number }>();
+  return {
+    get(key: string): T | null {
+      const entry = cache.get(key);
+      if (!entry) return null;
+      if (Date.now() > entry.expiresAt) {
+        cache.delete(key);
+        return null;
+      }
+      return entry.data;
+    },
+    /** `entryTtlMs` overrides the cache-wide TTL for this entry only —
+     *  used by callers whose TTL varies per request (the plugin proxy). */
+    set(key: string, data: T, entryTtlMs: number = ttlMs) {
+      if (!cache.has(key) && cache.size >= SERVER_CACHE_MAX_ENTRIES) {
+        // Evict expired entries first
+        const now = Date.now();
+        for (const [k, v] of cache) {
+          if (now > v.expiresAt) cache.delete(k);
+        }
+        // If still full, drop the oldest entry (Map insertion order)
+        if (cache.size >= SERVER_CACHE_MAX_ENTRIES) {
+          const oldest = cache.keys().next().value;
+          if (oldest !== undefined) cache.delete(oldest);
+        }
+      }
+      cache.set(key, { data, expiresAt: Date.now() + entryTtlMs });
+    },
+    clear() {
+      cache.clear();
+    },
+  };
+}
+
+/**
+ * Key-scoped resolver cache: positive results cache for ttlMs; a null result
+ * (the resolver saying "gone/private", distinct from an outage, which throws
+ * and stays uncached) is remembered for negativeTtlMs so always-on pollers
+ * back off a broken key briefly instead of re-hitting the upstream forever.
+ * Concurrent cold fetches for one key collapse into a single upstream call.
+ */
+export function createResolverCache<T>(
+  ttlMs: number,
+  negativeTtlMs: number,
+  resolve: (key: string) => Promise<T | null>,
+) {
+  const positive = createTTLCache<T>(ttlMs);
+  const negative = createTTLCache<true>(negativeTtlMs);
+  const inflight = new Map<string, Promise<T | null>>();
+  // Bumped by clear() so a resolve that was already in flight when the
+  // caller invalidated cannot repopulate the cache with its pre-clear
+  // snapshot — matters for clear-on-write consumers (config-cache).
+  let generation = 0;
+  return {
+    async fetch(key: string): Promise<T | null> {
+      const cached = positive.get(key);
+      if (cached) return cached;
+      if (negative.get(key)) return null;
+
+      const existing = inflight.get(key);
+      if (existing) return existing;
+
+      // TTLs count from the moment the upstream call STARTS: a slow resolve
+      // must not extend how stale a served value can get beyond ttlMs.
+      const start = Date.now();
+      const gen = generation;
+      const promise = resolve(key)
+        .then((result) => {
+          if (gen === generation) {
+            const elapsed = Date.now() - start;
+            if (result) positive.set(key, result, Math.max(0, ttlMs - elapsed));
+            else negative.set(key, true, Math.max(0, negativeTtlMs - elapsed));
+          }
+          return result;
+        })
+        .finally(() => {
+          // Only remove our own entry — after a clear(), a newer fetch may
+          // have registered a fresh in-flight promise under the same key.
+          if (inflight.get(key) === promise) inflight.delete(key);
+        });
+      inflight.set(key, promise);
+      return promise;
+    },
+    clear() {
+      generation++;
+      positive.clear();
+      negative.clear();
+      inflight.clear();
+    },
+  };
+}
+
+/**
+ * Validates a Todoist API token by making a lightweight request to the
+ * Todoist projects endpoint. Returns `true` if the token is valid, or an
+ * object with the HTTP status code if it is not.
+ */
+export async function validateTodoistToken(
+  token: string,
+): Promise<{ valid: true } | { valid: false; status: number }> {
+  const res = await fetchWithTimeout('https://api.todoist.com/api/v1/projects', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return { valid: false, status: res.status };
+  return { valid: true };
+}
+
+/* ─── Rate limiting ──────────────────────────── */
+
+/**
+ * Creates an in-memory per-IP rate limiter.
+ * After `maxAttempts` failures within `windowMs`, subsequent calls to
+ * `isLimited()` return true until the window expires.
+ */
+export function createRateLimiter(maxAttempts: number, windowMs: number) {
+  const attempts = new Map<string, { count: number; resetAt: number }>();
+  return {
+    isLimited(ip: string): boolean {
+      const entry = attempts.get(ip);
+      if (!entry) return false;
+      if (Date.now() > entry.resetAt) {
+        attempts.delete(ip);
+        return false;
+      }
+      return entry.count >= maxAttempts;
+    },
+    recordFailure(ip: string): void {
+      const entry = attempts.get(ip);
+      if (!entry || Date.now() > entry.resetAt) {
+        attempts.set(ip, { count: 1, resetAt: Date.now() + windowMs });
+      } else {
+        entry.count++;
+      }
+    },
+    clear(ip: string): void {
+      attempts.delete(ip);
+    },
+    /**
+     * Milliseconds until `ip` may try again, or 0 when it isn't limited.
+     * The login page turns this into "wait 15 minutes" — a bare "try again
+     * later" leaves someone refreshing a page that will not let them in.
+     */
+    retryAfterMs(ip: string): number {
+      const entry = attempts.get(ip);
+      if (!entry || entry.count < maxAttempts) return 0;
+      return Math.max(0, entry.resetAt - Date.now());
+    },
+  };
+}
+
+/**
+ * Client IP for auth / allowlist / rate-limit decisions.
+ *
+ * Reads only `x-hs-client-ip`, which the http-server patch installed by
+ * `src/instrumentation.ts` stamps from the real TCP peer on every request,
+ * overwriting anything the caller sent (see `lib/server-ip-patch.ts` and
+ * `lib/client-ip.ts` for the trusted-proxy escape hatch). Client-supplied
+ * `X-Forwarded-For` / `X-Real-IP` are deliberately NOT consulted — with no
+ * fronting proxy they are attacker-controlled and were previously usable to
+ * spoof the IP allowlist and rotate rate-limit buckets. A missing header
+ * (e.g. unit tests, patch not installed) fails closed as 'unknown': it never
+ * matches an allowlist entry, and rate limiting degrades to a shared bucket.
+ */
+export function getClientIP(request: NextRequest): string {
+  return request.headers.get(CLIENT_IP_HEADER) || 'unknown';
+}
+
+/**
+ * Wraps an authenticated API route handler with the standard
+ * requireSession + error-handling boilerplate.
+ *
+ * Before:
+ *   export async function GET(request: NextRequest) {
+ *     try {
+ *       await requireSession(request);
+ *       // …handler logic…
+ *     } catch (error) {
+ *       if (error instanceof Response) return error;
+ *       return errorResponse(error, 'Failed to …');
+ *     }
+ *   }
+ *
+ * After:
+ *   export const GET = withAuth(async (request) => {
+ *     // …handler logic…
+ *   }, 'Failed to …');
+ */
+export function withAuth<C = unknown>(
+  handler: (request: NextRequest, context: C) => Promise<Response>,
+  errorMsg: string,
+) {
+  return async (request: NextRequest, context?: C): Promise<Response> => {
+    try {
+      await requireSession(request);
+      return await handler(request, context as C);
+    } catch (error) {
+      if (error instanceof Response) return error;
+      return errorResponse(error, errorMsg);
+    }
+  };
+}
+
+/**
+ * Like `withAuth`, but accepts either a session cookie OR a display Bearer token.
+ * Use this for endpoints the display polls (config, weather, commands, etc.).
+ */
+export function withDisplayAuth<C = unknown>(
+  handler: (request: NextRequest, context: C) => Promise<Response>,
+  errorMsg: string,
+) {
+  return async (request: NextRequest, context?: C): Promise<Response> => {
+    try {
+      await requireDisplayAuth(request, getClientIP(request));
+      return await handler(request, context as C);
+    } catch (error) {
+      if (error instanceof Response) return error;
+      return errorResponse(error, errorMsg);
+    }
+  };
+}
+
+/**
+ * Like `withDisplayAuth`, but additionally accepts a signed media token in
+ * the `mt` query param (see `lib/media-token.ts`). Only for media-serving
+ * routes whose URLs land in bare `<video src>` attributes, which cannot send
+ * a Bearer header. `resourceFromRequest` returns the string the token must be
+ * bound to (e.g. the `file` or `assetId` query param), so a leaked URL cannot
+ * be replayed for other assets.
+ */
+export function withMediaTokenAuth<C = unknown>(
+  handler: (request: NextRequest, context: C) => Promise<Response>,
+  errorMsg: string,
+  resourceFromRequest: (request: NextRequest) => string | null,
+) {
+  return async (request: NextRequest, context?: C): Promise<Response> => {
+    try {
+      try {
+        await requireDisplayAuth(request, getClientIP(request));
+      } catch (authError) {
+        if (!(authError instanceof Response)) throw authError;
+        const token = request.nextUrl.searchParams.get('mt');
+        const resource = resourceFromRequest(request);
+        const secret = await getMediaTokenSecret();
+        if (!token || !resource || !secret || !verifyMediaToken(secret, resource, token)) {
+          throw authError;
+        }
+      }
+      return await handler(request, context as C);
+    } catch (error) {
+      if (error instanceof Response) return error;
+      return errorResponse(error, errorMsg);
+    }
+  };
+}
+
+interface CachedProxyRouteBase {
+  ttlMs: number;
+  errorMessage: string;
+  /** Auth tier for this route. 'display' accepts session or display token; 'session' requires session only. */
+  auth?: 'display' | 'session';
+}
+
+interface CachedProxyRouteOptions<T> extends CachedProxyRouteBase {
+  cacheKey?: (request: NextRequest) => string | Promise<string>;
+  url: string | ((request: NextRequest) => string);
+  fetchInit?: RequestInit;
+  transform: (data: unknown, request: NextRequest) => T;
+}
+
+interface CachedProxyRouteCustomOptions<T> extends CachedProxyRouteBase {
+  cacheKey?: (request: NextRequest) => string | Promise<string>;
+  execute: (request: NextRequest) => Promise<T | NextResponse>;
+}
+
+/**
+ * Custom config with a `prepare` step that runs once per request.
+ * The prepared data is passed to both `cacheKey` and `execute`,
+ * avoiding redundant work like double `readConfig()` calls.
+ */
+interface CachedProxyRoutePreparedOptions<T, P> extends CachedProxyRouteBase {
+  prepare: (request: NextRequest) => Promise<P>;
+  cacheKey: (prepared: P) => string;
+  execute: (prepared: P, request: NextRequest) => Promise<T | NextResponse>;
+}
+
+type CachedProxyRouteConfig<T, P = never> =
+  | CachedProxyRouteOptions<T>
+  | CachedProxyRouteCustomOptions<T>
+  | CachedProxyRoutePreparedOptions<T, P>;
+
+function isPreparedConfig<T, P>(config: CachedProxyRouteConfig<T, P>): config is CachedProxyRoutePreparedOptions<T, P> {
+  return 'prepare' in config;
+}
+
+function isCustomConfig<T>(config: CachedProxyRouteOptions<T> | CachedProxyRouteCustomOptions<T>): config is CachedProxyRouteCustomOptions<T> {
+  return 'execute' in config;
+}
+
+/**
+ * Build a cached GET route handler for external-data proxy endpoints.
+ *
+ * NOTE ON AUTH: routes built with this factory are authenticated via the
+ * `auth` field on their config (`'display'` → session OR display token,
+ * `'session'` → session only), enforced at the top of the generated GET.
+ * They contain no inline `requireDisplayAuth`/`requireSession` call, so a
+ * grep for those guard clauses will NOT find them — check the route's
+ * `cachedProxyRoute({ auth: ... })` config instead.
+ */
+export function cachedProxyRoute<T>(config: CachedProxyRouteOptions<T>): { GET: (request: NextRequest) => Promise<NextResponse>; cache: ReturnType<typeof createTTLCache<T>> };
+export function cachedProxyRoute<T>(config: CachedProxyRouteCustomOptions<T>): { GET: (request: NextRequest) => Promise<NextResponse>; cache: ReturnType<typeof createTTLCache<T>> };
+export function cachedProxyRoute<T, P>(config: CachedProxyRoutePreparedOptions<T, P>): { GET: (request: NextRequest) => Promise<NextResponse>; cache: ReturnType<typeof createTTLCache<T>> };
+export function cachedProxyRoute<T, P = never>(config: CachedProxyRouteConfig<T, P>) {
+  const cache = createTTLCache<T>(config.ttlMs);
+
+  // Single-flight: when the TTL lapses, every display polling the endpoint
+  // misses at once — coalesce concurrent misses on one key into a single
+  // upstream call instead of firing one per caller. A NextResponse outcome
+  // (error paths) goes to the initiating request as-is; joiners get clones of
+  // a never-consumed copy, since a Response body can only be read once.
+  const inflight = new Map<string, Promise<{ data: T } | { response: NextResponse; copy: Response }>>();
+
+  const runShared = async (key: string, execute: () => Promise<T | NextResponse>): Promise<NextResponse> => {
+    const existing = inflight.get(key);
+    if (existing) {
+      const settled = await existing;
+      return 'data' in settled ? NextResponse.json(settled.data) : (settled.copy.clone() as NextResponse);
+    }
+    const run = (async () => {
+      const result = await execute();
+      if (result instanceof NextResponse) return { response: result, copy: result.clone() };
+      cache.set(key, result);
+      return { data: result };
+    })().finally(() => inflight.delete(key));
+    inflight.set(key, run);
+    const settled = await run;
+    return 'data' in settled ? NextResponse.json(settled.data) : settled.response;
+  };
+
+  const GET = async (request: NextRequest) => {
+    try {
+      if (config.auth === 'display') await requireDisplayAuth(request, getClientIP(request));
+      else if (config.auth === 'session') await requireSession(request);
+
+      if (isPreparedConfig(config)) {
+        const prepared = await config.prepare(request);
+        const key = config.cacheKey(prepared);
+        const cached = cache.get(key);
+        if (cached) return NextResponse.json(cached);
+
+        return await runShared(key, () => config.execute(prepared, request));
+      }
+
+      const keyFn = config.cacheKey ?? (() => '_');
+      const key = await keyFn(request);
+      const cached = cache.get(key);
+      if (cached) return NextResponse.json(cached);
+
+      if (isCustomConfig(config)) {
+        return await runShared(key, () => config.execute(request));
+      }
+
+      return await runShared(key, async () => {
+        const resolvedUrl = typeof config.url === 'function' ? config.url(request) : config.url;
+        const res = await fetchWithTimeout(resolvedUrl, config.fetchInit);
+        if (!res.ok) {
+          return NextResponse.json({ error: config.errorMessage }, { status: 502 });
+        }
+        const data = await res.json();
+        return config.transform(data, request);
+      });
+    } catch (error) {
+      if (error instanceof Response) return error;
+      return errorResponse(error, config.errorMessage);
+    }
+  };
+
+  return { GET, cache };
+}
+
+/**
+ * Reads a secret and returns it, or returns a 400 NextResponse if not configured.
+ * Usage: `const key = await requireSecret('openweathermap_key', 'OpenWeatherMap'); if (key instanceof NextResponse) return key;`
+ */
+export async function requireSecret(
+  key: SecretKey,
+  serviceName: string,
+  page?: SetupPage,
+): Promise<string | NextResponse> {
+  const value = await getSecret(key);
+  if (!value) {
+    return setupErrorResponse(
+      `No ${serviceName} API key configured. Add it in Settings > ${page === 'weather' ? 'Weather' : 'API keys'}.`,
+      'key',
+      serviceName,
+      page,
+    );
+  }
+  return value;
+}
+
+/**
+ * Validate that each named field on a JSON body is either absent or an array.
+ * Returns a 400 NextResponse on the first failure, or null when all checks pass.
+ *
+ * Use this in PUT handlers where every field is individually optional but the
+ * ones that ARE present must be arrays — for example `meals/data` and any other
+ * partial-update route. Callers that require a field to be present should add
+ * their own `field === undefined` check afterwards.
+ */
+export function assertOptionalArrays(
+  body: Record<string, unknown>,
+  keys: string[],
+): NextResponse | null {
+  for (const key of keys) {
+    const value = body[key];
+    if (value !== undefined && !Array.isArray(value)) {
+      return NextResponse.json({ error: `${key} must be an array` }, { status: 400 });
+    }
+  }
+  return null;
+}
+
+/**
+ * Like assertOptionalArrays, but every named field must be present AND an
+ * array. Use in full-replace PUT handlers (chores, rewards) where a missing
+ * field would silently wipe data downstream.
+ */
+export function assertRequiredArrays(
+  body: Record<string, unknown>,
+  keys: string[],
+): NextResponse | null {
+  for (const key of keys) {
+    if (!Array.isArray(body[key])) {
+      return NextResponse.json({ error: `${key} must be an array` }, { status: 400 });
+    }
+  }
+  return null;
+}
+
+/**
+ * Guard against accidentally overwriting non-empty data with an empty payload.
+ * Returns a 409 response if all `incoming` arrays are empty but existing data has content.
+ * Returns null if the write should proceed.
+ */
+export async function guardEmptyOverwrite(
+  incoming: unknown[][],
+  loadExisting: () => Promise<unknown[][]>,
+  dataName: string,
+  force?: boolean,
+): Promise<NextResponse | null> {
+  if (force || incoming.some((a) => a.length > 0)) return null;
+  try {
+    const existing = await loadExisting();
+    if (existing.some((a) => a.length > 0)) {
+      return NextResponse.json(
+        { error: `Refusing to overwrite non-empty ${dataName} data with empty payload. Send { force: true } to confirm.` },
+        { status: 409 },
+      );
+    }
+  } catch {
+    // Can't read existing — allow the write
+  }
+  return null;
+}
+
+/** Split a comma-separated query parameter into a trimmed, non-empty array of strings. */
+export function parseCommaList(param: string | null): string[] {
+  if (!param) return [];
+  return param.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+/**
+ * Body cap for routes that take a handful of short fields (a URL, a key, a
+ * passphrase). Generous for the real payload, small enough that nothing
+ * expensive runs on a body worth buffering.
+ */
+export const SMALL_BODY_BYTES = 8 * 1024;
+
+export interface ParseJsonBodyOptions {
+  /**
+   * Maximum accepted body size in bytes. When set, an oversized request is
+   * rejected with a 413 before its JSON is parsed — via both a fast-path
+   * Content-Length check and a streaming byte cap that also catches an absent
+   * or dishonest Content-Length. Omit to accept any size (the default, so all
+   * existing callers keep their current behavior).
+   */
+  maxBytes?: number;
+}
+
+/**
+ * Parse a JSON request body, returning a 400 NextResponse on malformed JSON.
+ * Only guards JSON syntax — callers still validate the parsed shape.
+ *
+ * Pass `{ maxBytes }` to bound the body size (returns 413 when exceeded) for
+ * routes that accept untrusted uploads; without it the body is unbounded.
+ *
+ * Usage:
+ *   const body = await parseJsonBody<ConnectRequest>(request);
+ *   if (body instanceof NextResponse) return body;
+ */
+export async function parseJsonBody<T>(
+  request: NextRequest,
+  options?: ParseJsonBodyOptions,
+): Promise<T | NextResponse> {
+  const maxBytes = options?.maxBytes;
+  if (maxBytes === undefined) {
+    try {
+      return await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+  }
+
+  // Fast-path: reject an honest, oversized Content-Length without reading the body.
+  const declared = Number(request.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    return NextResponse.json({ error: 'Request body too large' }, { status: 413 });
+  }
+
+  // Bounded read: stream the body and abort past the cap, so an absent or
+  // dishonest Content-Length can't force us to buffer an unbounded body.
+  const text = await readBodyCapped(request, maxBytes);
+  if (text instanceof NextResponse) return text;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+}
+
+/**
+ * Read a request body as text while enforcing a byte cap. Streams the body and
+ * cancels once `maxBytes` is exceeded (returning a 413) so a large or
+ * unbounded body is never fully buffered in memory.
+ */
+async function readBodyCapped(
+  request: NextRequest,
+  maxBytes: number,
+): Promise<string | NextResponse> {
+  const reader = request.body?.getReader();
+  if (!reader) {
+    // No readable stream (already-buffered body) — fall back to a measured read.
+    const text = await request.text();
+    if (Buffer.byteLength(text) > maxBytes) {
+      return NextResponse.json({ error: 'Request body too large' }, { status: 413 });
+    }
+    return text;
+  }
+
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+    received += value.byteLength;
+    if (received > maxBytes) {
+      // Cancel the body so the socket is released instead of read to completion.
+      try { await reader.cancel(); } catch { /* ignore */ }
+      return NextResponse.json({ error: 'Request body too large' }, { status: 413 });
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString('utf-8');
+}
+
+/**
+ * Extract a human-readable message from a child_process `execFile` rejection,
+ * preferring the captured stderr (nmcli, hostnamectl, etc. put their real
+ * diagnostics there). Falls back to `fallback` when the error carries no
+ * stderr property at all.
+ */
+export function execErrorMessage(err: unknown, fallback: string): string {
+  return err && typeof err === 'object' && 'stderr' in err
+    ? String((err as { stderr: unknown }).stderr).trim()
+    : fallback;
+}
+
+/**
+ * Parse and validate a version tag from a JSON request body.
+ * Returns the tag string on success, or a NextResponse error on failure.
+ */
+export async function parseTagParam(
+  request: NextRequest,
+): Promise<string | NextResponse> {
+  const body = await parseJsonBody<{ tag?: string }>(request);
+  if (body instanceof NextResponse) return body;
+  const tag = body.tag;
+  if (!tag || typeof tag !== 'string') {
+    return NextResponse.json({ error: 'Missing "tag" in request body' }, { status: 400 });
+  }
+  if (!/^v?\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?$/.test(tag)) {
+    return NextResponse.json({ error: 'Invalid tag format' }, { status: 400 });
+  }
+  return tag;
+}
+

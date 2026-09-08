@@ -1,0 +1,130 @@
+{
+  "_type": "home-screens-layout",
+  "_version": 1,
+  "metadata": {
+    "name": "Productivity",
+    "description": "Task management, calendar, countdowns, and year progress tracking for staying on top of your schedule",
+    "exportedAt": "2026-01-01T00:00:00.000Z",
+    "configVersion": 10,
+    "sourceDisplay": { "width": 1080, "height": 1920 },
+    "screenCount": 1,
+    "moduleCount": 4
+  },
+  "visual": {
+    "rotationIntervalMs": 30000,
+    "transitionEffect": "fade",
+    "transitionDuration": 0.6
+  },
+  "screens": [
+    {
+      "id": "tpl-prod-s1",
+      "name": "Productivity",
+      "backgroundImage": "",
+      "modules": [
+        {
+          "id": "tpl-prod-m1",
+          "type": "todoist",
+          "position": { "x": 20, "y": 20 },
+          "size": { "w": 1040, "h": 700 },
+          "zIndex": 1,
+          "config": {
+            "viewMode": "list",
+            "groupBy": "priority",
+            "sortBy": "due_date",
+            "projectFilter": "",
+            "labelFilter": "",
+            "showNoDueDate": true,
+            "showSubtasks": true,
+            "showLabels": true,
+            "showProject": true,
+            "showDescription": false,
+            "maxTasks": 15,
+            "refreshIntervalMs": 60000,
+            "title": "Tasks"
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-prod-m2",
+          "type": "calendar",
+          "position": { "x": 20, "y": 740 },
+          "size": { "w": 1040, "h": 520 },
+          "zIndex": 1,
+          "config": {
+            "viewMode": "agenda",
+            "daysToShow": 3,
+            "showTime": true,
+            "showLocation": false,
+            "maxEvents": 8,
+            "showWeekNumbers": false
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-prod-m3",
+          "type": "countdown",
+          "position": { "x": 20, "y": 1280 },
+          "size": { "w": 1040, "h": 340 },
+          "zIndex": 1,
+          "config": {
+            "events": [],
+            "showPastEvents": false,
+            "scale": 1
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-prod-m4",
+          "type": "year-progress",
+          "position": { "x": 20, "y": 1640 },
+          "size": { "w": 1040, "h": 260 },
+          "zIndex": 1,
+          "config": {
+            "showYear": true,
+            "showMonth": true,
+            "showWeek": true,
+            "showDay": true,
+            "showPercentage": true
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        }
+      ]
+    }
+  ]
+}

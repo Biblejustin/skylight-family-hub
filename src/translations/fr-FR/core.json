@@ -1,0 +1,210 @@
+{
+  "today": "Aujourd'hui",
+  "tomorrow": "Demain",
+  "yesterday": "Hier",
+  "loading": "Chargement…",
+  "actions": {
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "remove": "Retirer",
+    "add": "Ajouter",
+    "close": "Fermer",
+    "back": "Retour",
+    "confirm": "Confirmer",
+    "save": "Enregistrer",
+    "done": "Terminé",
+    "edit": "Modifier",
+    "clear": "Vider",
+    "settings": "Paramètres",
+    "name": "Nom",
+    "color": "Couleur",
+    "icon": "Icône",
+    "label": "Étiquette"
+  },
+  "status": {
+    "saving": "Enregistrement…",
+    "connected": "Connecté",
+    "disabled": "Désactivé",
+    "never": "Jamais",
+    "none": "Aucun"
+  },
+  "relativeTime": {
+    "justNow": "à l'instant",
+    "secondsAgo": "il y a {n} s",
+    "minutesAgo": "il y a {n} min",
+    "hoursAgo": "il y a {n} h",
+    "daysAgo": "il y a {n} j",
+    "weeksAgo": "il y a {n} sem."
+  },
+  "emptyDisplay": {
+    "eyebrow": "Home Screens",
+    "headline": "Rien sur cet écran pour l'instant",
+    "body": "Sur un téléphone ou un ordinateur connecté à ton Wi-Fi, ouvre",
+    "hideHint": "Tu préfères un écran vide ? Paramètres › Écran › Afficher cette astuce"
+  },
+  "pagination": {
+    "paused": "En pause",
+    "previousScreen": "Écran précédent",
+    "nextScreen": "Écran suivant",
+    "resumesIn": "Reprend dans {time} · touche pour reprendre",
+    "tapToResume": "touche pour reprendre",
+    "minutes": "{count} min",
+    "seconds": "{count} s"
+  },
+  "displayNotFound": {
+    "notRegistered": "Affichage pas encore ajouté",
+    "adoptionLine1": "Cet affichage est connecté à Home Screens mais n'a pas encore été ajouté.",
+    "adoptionLine2": "Ouvre l'éditeur sur le Pi principal, va dans",
+    "settingsLink": "Paramètres → Affichages",
+    "andClick": "et clique sur",
+    "adoptLabel": "Ajouter",
+    "nextTo": "à côté de",
+    "waitingForAdoption": "En attente d'ajout…",
+    "recoveryNotice": "Cet affichage n'est pas encore configuré, mais tes autres affichages le sont. Passage à l'affichage principal dans {seconds} s.",
+    "goToDefault": "Aller à l'affichage principal maintenant"
+  },
+  "login": {
+    "checkingAuth": "Vérification de l'authentification…",
+    "ipBlocked": "Cet appareil n'a pas le droit de se connecter",
+    "enterPasswordToContinue": "Saisis ton mot de passe pour continuer",
+    "accessRestricted": "Accès restreint",
+    "accessRestrictedDescription": "Home Screens n'accepte les connexions que depuis certains appareils, et celui-ci n'est pas sur la liste. Se connecter n'y changera rien. Demande à la personne qui a installé Home Screens d'ajouter cet appareil, ou réessaie depuis un appareil déjà autorisé.",
+    "passwordPlaceholder": "Mot de passe",
+    "rememberMe": "Se souvenir de moi pendant 90 jours",
+    "signingIn": "Connexion…",
+    "unlock": "Déverrouiller",
+    "loading": "Chargement…",
+    "backToDisplay": "Retour à l'affichage",
+    "loginFailed": "Échec de la connexion",
+    "unreachable": "Impossible de joindre Home Screens",
+    "errors": {
+      "wrongPassword": "Ce mot de passe n'est pas le bon.",
+      "tooManyTries": {
+        "one": "Trop d'essais. Attendez {count} minute, puis réessayez.",
+        "other": "Trop d'essais. Attendez {count} minutes, puis réessayez."
+      }
+    },
+    "forgotPassword": {
+      "link": "Mot de passe oublié ?",
+      "title": "Réinitialiser le mot de passe",
+      "body": "La personne qui a installé cet appareil peut effacer le mot de passe. Sur l'appareil (avec un clavier branché) ou depuis un autre ordinateur dans un terminal, lance :",
+      "fallback": "Si cette commande n'existe pas, supprimer le fichier {file} dans le dossier Home Screens fait la même chose.",
+      "after": "Home Screens s'ouvre ensuite sans mot de passe, et vous pouvez en définir un nouveau dans les réglages."
+    }
+  },
+  "errors": {
+    "fetchFailed": "Impossible de se connecter pour charger ces données",
+    "loadImagesFailed": "Échec du chargement des images",
+    "uploadFailed": "Échec de l'envoi",
+    "createFolderFailed": "Échec de la création du dossier",
+    "deleteFolderFailed": "Échec de la suppression du dossier",
+    "deleteImageFailed": "Échec de la suppression de la photo",
+    "googleExpired": "Ta connexion Google a expiré. Reconnecte-toi.",
+    "deviceFlowFailed": "Échec du démarrage de l'authentification par appareil",
+    "codeExpired": "Code expiré. Réessaie.",
+    "authorizationFailed": "Échec de l'autorisation",
+    "startSignInFailed": "Impossible de démarrer la connexion"
+  },
+  "days": {
+    "sunday": "Dimanche",
+    "monday": "Lundi",
+    "tuesday": "Mardi",
+    "wednesday": "Mercredi",
+    "thursday": "Jeudi",
+    "friday": "Vendredi",
+    "saturday": "Samedi"
+  },
+  "meal": {
+    "difficulty": {
+      "easy": "Facile",
+      "medium": "Moyenne",
+      "hard": "Difficile"
+    },
+    "tags": {
+      "breakfast": "Petit-déjeuner",
+      "lunch": "Déjeuner",
+      "dinner": "Dîner",
+      "snack": "Goûter",
+      "quick": "Rapide",
+      "healthy": "Sain",
+      "vegetarian": "Végétarien",
+      "vegan": "Végan",
+      "comfort": "Réconfortant",
+      "spicy": "Épicé",
+      "kid-friendly": "Pour enfants",
+      "meal-prep": "Meal-prep",
+      "gluten-free": "Sans gluten",
+      "dairy-free": "Sans lactose",
+      "batch-cook": "Batch cooking"
+    },
+    "ingredientCategories": {
+      "produce": "Fruits et légumes",
+      "dairy": "Produits laitiers",
+      "meat": "Viande",
+      "seafood": "Poisson",
+      "bakery": "Boulangerie",
+      "pantry": "Épicerie",
+      "frozen": "Surgelés",
+      "beverages": "Boissons",
+      "other": "Autre"
+    },
+    "grocery": {
+      "categoryLabels": {
+        "produce": "Fruits et légumes",
+        "dairy": "Produits laitiers et œufs",
+        "meat": "Viande et poisson",
+        "seafood": "Viande et poisson",
+        "bakery": "Boulangerie",
+        "pantry": "Épicerie",
+        "frozen": "Surgelés",
+        "beverages": "Boissons",
+        "other": "Autre"
+      }
+    }
+  },
+  "timer": {
+    "stepCount": "Étape {current} sur {total}",
+    "quickName": "Minuteur de {minutes} minutes",
+    "almostDone": "Presque fini !",
+    "done": "Terminé !",
+    "paused": "En pause",
+    "allDone": "Tout est fait !",
+    "timesUp": "Le temps est écoulé !",
+    "finished": "{name} terminé",
+    "stepsDone": "étapes faites",
+    "totalTime": "temps total",
+    "nextUp": "Ensuite :",
+    "minutesShort": "{minutes} min",
+    "moreSteps": "+{count} de plus",
+    "progressWords": "{done} faites · {left} à faire",
+    "quickNameSeconds": "Minuteur de {seconds} secondes",
+    "quickNameClock": "Minuteur de {time}"
+  },
+  "launcher": {
+    "heading": "Où voulez-vous aller ?",
+    "remote": {
+      "title": "Télécommande familiale",
+      "body": "Tâches, repas, minuteurs et écrans"
+    },
+    "chores": {
+      "title": "Tâches des enfants",
+      "body": "Cocher les tâches du jour"
+    },
+    "display": {
+      "title": "Affichage",
+      "body": "Voir ce que montre le mur"
+    },
+    "editor": {
+      "title": "Éditeur",
+      "body": "Composez vos écrans. Plus pratique sur un ordinateur."
+    },
+    "editorAddressHint": "Ouvrez cette adresse sur un ordinateur pour composer vos écrans :",
+    "editorAddressLabel": "Adresse de l'éditeur",
+    "copy": "Copier",
+    "copied": "Copié",
+    "openEditor": "Ouvrir l'éditeur"
+  },
+  "alerts": {
+    "dismiss": "Fermer"
+  }
+}

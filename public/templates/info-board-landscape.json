@@ -1,0 +1,136 @@
+{
+  "_type": "home-screens-layout",
+  "_version": 1,
+  "metadata": {
+    "name": "Info Board",
+    "description": "An information-rich board with news, stocks, word of the day, historical facts, and quotes",
+    "exportedAt": "2026-01-01T00:00:00.000Z",
+    "configVersion": 10,
+    "sourceDisplay": { "width": 1920, "height": 1080 },
+    "screenCount": 1,
+    "moduleCount": 5
+  },
+  "visual": {
+    "rotationIntervalMs": 30000,
+    "transitionEffect": "fade",
+    "transitionDuration": 0.6
+  },
+  "screens": [
+    {
+      "id": "tpl-info-ls-s1",
+      "name": "Info Board",
+      "backgroundImage": "",
+      "modules": [
+        {
+          "id": "tpl-info-ls-m1",
+          "type": "news",
+          "position": { "x": 20, "y": 20 },
+          "size": { "w": 940, "h": 680 },
+          "zIndex": 1,
+          "config": {
+            "feeds": [
+              { "id": "tpl-info-ls-m1-feed-1", "url": "https://feeds.bbci.co.uk/news/rss.xml", "label": "BBC News" }
+            ],
+            "view": "list",
+            "refreshIntervalMs": 300000,
+            "rotateIntervalMs": 8000,
+            "maxItems": 10,
+            "showTimestamp": true,
+            "showDescription": true
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-info-ls-m2",
+          "type": "stock-ticker",
+          "position": { "x": 980, "y": 20 },
+          "size": { "w": 920, "h": 340 },
+          "zIndex": 1,
+          "config": {
+            "symbols": "AAPL,GOOGL,MSFT,AMZN,TSLA",
+            "refreshIntervalMs": 300000,
+            "view": "cards"
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-info-ls-m3",
+          "type": "word-of-day",
+          "position": { "x": 980, "y": 380 },
+          "size": { "w": 920, "h": 320 },
+          "zIndex": 1,
+          "config": {},
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-info-ls-m4",
+          "type": "history",
+          "position": { "x": 20, "y": 720 },
+          "size": { "w": 940, "h": 340 },
+          "zIndex": 1,
+          "config": {
+            "refreshIntervalMs": 3600000,
+            "rotationIntervalMs": 10000
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-info-ls-m5",
+          "type": "quote",
+          "position": { "x": 980, "y": 720 },
+          "size": { "w": 920, "h": 340 },
+          "zIndex": 1,
+          "config": {
+            "refreshIntervalMs": 3600000
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        }
+      ]
+    }
+  ]
+}

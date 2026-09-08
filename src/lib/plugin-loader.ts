@@ -1,0 +1,980 @@
+import type { ComponentType } from 'react';
+import type { PluginManifest, InstalledPlugin, PluginConfigSectionProps, StateProviderProps, SearchStateKeys } from '@/types/plugins';
+import type { ProvidedStateKey } from '@/lib/shared-state-types';
+import { usePluginStore } from '@/stores/plugin-store';
+import { registerPluginModule } from '@/lib/module-registry';
+import { registerFetchKey } from '@/lib/fetch-keys';
+import { displayFetch } from '@/lib/display-fetch';
+import { CONFIG_REVISION_HEADER } from '@/lib/config-revision';
+import { migrateConfigModules } from '@/lib/plugin-config-migration';
+import { editorFetch } from '@/lib/editor-fetch';
+import { sharedStateStore } from '@/lib/shared-state-store';
+import { pluginStatePrefix } from '@/lib/plugin-state-keys';
+import {
+  DEFAULT_LOCALE,
+  FALLBACK_LOCALE,
+  registerPluginNamespace,
+  resolveLocaleChain,
+} from '@/i18n';
+import type { Dictionary } from '@/i18n';
+import { logger } from '@/lib/logger';
+
+const log = logger('plugin');
+
+// ---------------------------------------------------------------------------
+// Dev-mode state — local plugin loading from dev server URLs
+// ---------------------------------------------------------------------------
+
+export interface DevPlugin {
+  url: string;
+  manifest: PluginManifest;
+}
+
+/** Dev plugins keyed by pluginId, stored in localStorage only */
+const DEV_PLUGINS_KEY = 'hs:devPlugins';
+
+function getDevPlugins(): Map<string, DevPlugin> {
+  try {
+    const raw = localStorage.getItem(DEV_PLUGINS_KEY);
+    if (!raw) return new Map();
+    return new Map(Object.entries(JSON.parse(raw)));
+  } catch {
+    return new Map();
+  }
+}
+
+function saveDevPlugins(devPlugins: Map<string, DevPlugin>): void {
+  localStorage.setItem(DEV_PLUGINS_KEY, JSON.stringify(Object.fromEntries(devPlugins)));
+}
+
+/**
+ * Load a plugin from a local dev server URL.
+ * Fetches manifest.json and bundle.js from the URL root, registers the plugin,
+ * and stores the mapping in localStorage (not persisted to disk config).
+ */
+export async function loadDevPlugin(url: string): Promise<void> {
+  // Normalise: strip trailing slash
+  const base = url.replace(/\/+$/, '');
+
+  // 1. Fetch manifest from dev server
+  const manifestRes = await fetch(`${base}/manifest.json`);
+  if (!manifestRes.ok) throw new Error(`Dev manifest fetch failed: ${manifestRes.status}`);
+  const manifest: PluginManifest = await manifestRes.json();
+
+  if (!manifest.id || !manifest.name || !manifest.moduleType) {
+    throw new Error('Dev manifest missing required fields');
+  }
+
+  const moduleType = `plugin:${manifest.moduleType}`;
+
+  // 2. Fetch bundle
+  const bundleRes = await fetch(`${base}/dist/bundle.js`);
+  if (!bundleRes.ok) throw new Error(`Dev bundle fetch failed: ${bundleRes.status}`);
+  const bundleText = await bundleRes.text();
+
+  // 2b. Pre-register dev-plugin translations against the dev server's URL
+  // base — same fallback chain the installed-plugin path uses, just with a
+  // remote origin instead of the local /api/plugins/asset/<id> route.
+  await loadPluginTranslations(manifest, base);
+
+  // 3. Execute bundle
+  const { component, configSection, stateProvider, deriveProvidedKeys, searchStateKeys } = executeBundle(bundleText, manifest);
+
+  // 4. Register server-side so the proxy can find the manifest and allowedDomains.
+  // This writes manifest.json to disk, which is the same file the config-migration
+  // route reads, so it has to run *before* the migration in step 5: a dev plugin
+  // that was never installed would otherwise 404, and a previously installed one
+  // would migrate against its stale manifest.
+  let registered = false;
+  try {
+    const devRes = await fetch('/api/plugins/dev', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ manifest }),
+    });
+    registered = devRes.ok;
+  } catch {
+    // Handled below alongside a non-ok response.
+  }
+  if (!registered) {
+    // Non-fatal — proxy features won't work but the plugin will still render
+    log.warn(`Failed to register dev plugin "${manifest.id}" server-side — pluginFetch will not work`);
+  }
+
+  // 5. Migrate configs if dev plugin version changed. Skipped when step 4 failed,
+  // because the on-disk manifest is then stale and migrating from it would apply
+  // the wrong rules rather than none.
+  const devPlugins = getDevPlugins();
+  const prev = devPlugins.get(manifest.id);
+  if (registered && prev && prev.manifest.version !== manifest.version) {
+    const migrated = await migratePluginConfigs(manifest, prev.manifest.version);
+    if (!migrated) {
+      log.warn(
+        `Config migration for dev plugin "${manifest.id}" did not run — module configs may still use the ${prev.manifest.version} shape`,
+      );
+    }
+  }
+
+  // 6. Register client-side
+  registerPluginModule(manifest, { deriveProvidedKeys, hasStateProvider: Boolean(stateProvider) });
+  usePluginStore.getState().registerPlugin(moduleType, component, manifest, configSection, stateProvider, searchStateKeys);
+
+  // 7. Persist dev mapping in localStorage
+  devPlugins.set(manifest.id, { url: base, manifest });
+  saveDevPlugins(devPlugins);
+}
+
+/**
+ * Unload a dev plugin and remove it from localStorage.
+ */
+export function unloadDevPlugin(pluginId: string): void {
+  const devPlugins = getDevPlugins();
+  const dev = devPlugins.get(pluginId);
+  if (!dev) return;
+
+  const moduleType = `plugin:${dev.manifest.moduleType}`;
+  usePluginStore.getState().unregisterPlugin(moduleType);
+  devPlugins.delete(pluginId);
+  saveDevPlugins(devPlugins);
+}
+
+/**
+ * Get the list of currently loaded dev plugins.
+ */
+export function listDevPlugins(): Map<string, DevPlugin> {
+  return getDevPlugins();
+}
+
+// ---------------------------------------------------------------------------
+// Dev-mode polling — auto-reload on bundle change
+// ---------------------------------------------------------------------------
+
+const pollIntervals = new Map<string, ReturnType<typeof setInterval>>();
+const bundleETags = new Map<string, string>();
+const pollInFlight = new Set<string>();
+
+/**
+ * Start polling a dev plugin's bundle for changes (2s interval).
+ * On change (different ETag or Content-Length), auto-reload the plugin.
+ * An in-flight guard prevents concurrent ticks from double-reloading.
+ */
+export function startDevPolling(pluginId: string): void {
+  stopDevPolling(pluginId); // clear any existing interval
+
+  const interval = setInterval(async () => {
+    // Guard: skip if previous tick is still running
+    if (pollInFlight.has(pluginId)) return;
+    pollInFlight.add(pluginId);
+
+    try {
+      // Re-read from localStorage each tick to pick up URL changes
+      const dev = getDevPlugins().get(pluginId);
+      if (!dev) { stopDevPolling(pluginId); return; }
+
+      const res = await fetch(`${dev.url}/dist/bundle.js`, { method: 'HEAD' });
+      if (!res.ok) return;
+
+      const etag = res.headers.get('etag') || res.headers.get('content-length') || '';
+      const prev = bundleETags.get(pluginId);
+
+      if (prev !== undefined && prev !== etag) {
+        // Bundle changed — reload
+        await loadDevPlugin(dev.url);
+      }
+
+      bundleETags.set(pluginId, etag);
+    } catch {
+      // Dev server may be temporarily down — ignore
+    } finally {
+      pollInFlight.delete(pluginId);
+    }
+  }, 2000);
+
+  pollIntervals.set(pluginId, interval);
+}
+
+export function stopDevPolling(pluginId: string): void {
+  const interval = pollIntervals.get(pluginId);
+  if (interval) {
+    clearInterval(interval);
+    pollIntervals.delete(pluginId);
+  }
+  bundleETags.delete(pluginId);
+}
+
+function stopAllDevPolling(): void {
+  for (const id of pollIntervals.keys()) stopDevPolling(id);
+}
+
+// ---------------------------------------------------------------------------
+// Config migration — deep-merge on version change
+// ---------------------------------------------------------------------------
+
+/**
+ * Migrate module configs when a plugin version changes.
+ * Returns true if migration succeeded (or no migration was needed),
+ * false if it failed and should be retried on next load.
+ *
+ * The migration itself runs server-side (`/api/plugins/migrate-config`) so the
+ * read-modify-write is serialized against editor saves and covers every
+ * display's screens, not just the legacy global pool. Uses `editorFetch` so an
+ * expired session surfaces as a login redirect rather than a migration that
+ * silently "fails" and retries on every subsequent load forever.
+ */
+async function migratePluginConfigs(
+  manifest: PluginManifest,
+  oldVersion: string,
+): Promise<{ ok: boolean; changed: boolean; revision: string | null }> {
+  try {
+    const res = await editorFetch('/api/plugins/migrate-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pluginId: manifest.id, oldVersion }),
+    });
+    if (!res.ok) return { ok: false, changed: false, revision: null };
+    const body = (await res.json().catch(() => ({}))) as { changed?: boolean };
+    return { ok: true, changed: body.changed === true, revision: res.headers.get(CONFIG_REVISION_HEADER) };
+  } catch (err) {
+    log.warn(`Config migration for ${manifest.id} failed:`, err);
+    return { ok: false, changed: false, revision: null };
+  }
+}
+
+/**
+ * A migration that rewrote config.json moved the hub's revision on without
+ * the editor knowing, so its next save would be refused as a conflict with
+ * nobody else involved, and "Keep mine" would then undo the migration. Bring
+ * the editor store along: reload when it is clean; when it holds unsaved
+ * edits, apply the same pure migration to the in-memory config and adopt the
+ * hub's revision, so the pending save carries the migrated shape. Dynamic
+ * import: the editor store is not a dependency of the plugin loader, and a
+ * display page never has one.
+ */
+async function syncEditorAfterMigrations(applied: { manifest: PluginManifest; oldVersion: string; revision: string | null }[]): Promise<void> {
+  if (applied.length === 0) return;
+  const { useEditorStore } = await import('@/stores/editor-store');
+  const store = useEditorStore.getState();
+  // Config not loaded yet: the load that follows fetches the migrated file.
+  if (!store.config) return;
+  if (!store.isDirty && !store.isSaving) {
+    await store.loadConfig();
+    return;
+  }
+  const config = structuredClone(store.config);
+  for (const { manifest, oldVersion } of applied) migrateConfigModules(config, manifest, oldVersion);
+  const revision = applied[applied.length - 1].revision;
+  // Bump the generation like every other outside-the-session replacement, so
+  // an open settings form re-hydrates instead of writing its pre-migration
+  // snapshot back over the migrated shape on the next keystroke.
+  useEditorStore.setState({
+    config,
+    configGeneration: store.configGeneration + 1,
+    ...(revision ? { configRevision: revision } : {}),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Pending migrations — collected during parallel load, executed sequentially
+// ---------------------------------------------------------------------------
+
+interface PendingMigration {
+  manifest: PluginManifest;
+  oldVersion: string;
+  pluginId: string;
+}
+
+/** Tombstone every shared-state key namespace in `pluginIds`. */
+function purgePluginStateKeys(pluginIds: Iterable<string>): void {
+  for (const id of pluginIds) {
+    sharedStateStore.clearKeysByPrefix(pluginStatePrefix(id));
+  }
+}
+
+/**
+ * The surface a plugin load runs on. The caller always knows which page
+ * mounted it; the loader must not guess from the URL. `editor` unlocks the
+ * authenticated-only work (dev overrides, config migrations); `display`
+ * loads installed bundles only.
+ */
+export type PluginSurface = 'editor' | 'display';
+
+/**
+ * Fetch the installed+enabled plugin list. Returns null on any failure —
+ * the caller treats that as "reload is a no-op" and leaves the current
+ * plugin set untouched.
+ */
+async function fetchEnabledPlugins(): Promise<InstalledPlugin[] | null> {
+  try {
+    const res = await displayFetch('/api/plugins/installed');
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data.plugins ?? []).filter((p: InstalledPlugin) => p.enabled);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Editor-only: load dev-override plugins from localStorage. A failed
+ * override falls back to the installed copy it displaced, so a dead dev
+ * server never takes a module off the palette. Can queue migrations via the
+ * fallback path, so it must run before `runPendingMigrations`.
+ */
+async function loadDevOverrides(
+  installedPlugins: InstalledPlugin[],
+  pendingMigrations: PendingMigration[],
+): Promise<void> {
+  for (const [pluginId, dev] of getDevPlugins()) {
+    try {
+      await loadDevPlugin(dev.url);
+      startDevPolling(pluginId);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      log.warn(`Dev plugin ${pluginId} failed to load from ${dev.url}:`, message);
+
+      // Poll on the failure path too. The tick re-reads localStorage and calls
+      // loadDevPlugin on an ETag change, so a dev server that comes back a few
+      // seconds later is picked up automatically. Arming only on success meant
+      // one failed override pinned the editor to the installed bundle until the
+      // developer reloaded or re-added the URL by hand.
+      startDevPolling(pluginId);
+
+      // A dead dev server must not take the module off the palette: fall
+      // back to the installed copy that was skipped in favor of the override.
+      const installed = installedPlugins.find((p) => p.id === pluginId);
+      if (!installed) {
+        usePluginStore.getState().setError(pluginId, {
+          message: `Could not load the dev version from ${dev.url} — ${message}`,
+          phase: 'load',
+        });
+        continue;
+      }
+      await loadSinglePlugin(installed, pendingMigrations);
+
+      // loadSinglePlugin clears the error on success; only replace it with
+      // the informational notice if the fallback actually registered.
+      const registered = usePluginStore.getState()
+        .plugins.has(`plugin:${installed.moduleType}`);
+      if (registered) {
+        usePluginStore.getState().setError(pluginId, {
+          message: `Dev version at ${dev.url} isn't responding — using installed v${installed.version} instead. Remove it from the Developer tab if you're done developing.`,
+          phase: 'load',
+        });
+      }
+    }
+  }
+}
+
+/** Run queued config migrations sequentially to avoid concurrent read-modify-write. */
+async function runPendingMigrations(pendingMigrations: PendingMigration[]): Promise<void> {
+  const applied: { manifest: PluginManifest; oldVersion: string; revision: string | null }[] = [];
+  for (const { manifest, oldVersion, pluginId } of pendingMigrations) {
+    const { ok, changed, revision } = await migratePluginConfigs(manifest, oldVersion);
+    // Only clear previousVersion if migration succeeded — otherwise it retries on next load
+    if (ok) {
+      fetch('/api/plugins/install', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pluginId, clearPrevVersion: true }),
+      }).catch(() => {}); // fire-and-forget
+    }
+    if (ok && changed) applied.push({ manifest, oldVersion, revision });
+  }
+  await syncEditorAfterMigrations(applied);
+}
+
+/**
+ * Load all installed+enabled plugins. Called from the plugin Zustand store,
+ * which threads `surface` from the mounting component.
+ *
+ * Loading sequence per plugin:
+ * 1. GET /api/plugins/manifest/<id> → manifest
+ * 2. GET /api/plugins/bundle/<id>?v=<version> → IIFE bundle text
+ * 3. Execute bundle via script injection → read window.__HS_PLUGIN__
+ * 4. Register into Zustand store + module registry
+ * 5. After all plugins loaded, run pending config migrations sequentially
+ *
+ * Store access is always through a fresh `usePluginStore.getState()` at the
+ * point of use — never a snapshot captured before an await, which is how a
+ * stale-closure read of `plugins` slipped in here once before.
+ *
+ * Returns false when the installed-list fetch failed and the reload was a
+ * no-op — useLiveConfig keeps its old plugin hash then, so the next poll
+ * retries the reload instead of believing the new set is already live.
+ */
+export async function loadAllPlugins({ surface }: { surface: PluginSurface }): Promise<boolean> {
+  // Fetch the new installed list BEFORE tearing anything down. A transient
+  // failure (hub restart, Pi WiFi blip) is then a no-op: the current
+  // registrations stay mounted, their producers keep publishing, and dev
+  // polling stays armed — the next reload trigger retries. Clearing first
+  // used to leave the tab with zero plugins and nothing to recover it.
+  const plugins = await fetchEnabledPlugins();
+  if (!plugins) return false;
+
+  // Reload is a swap, not a purge-then-load: registrations are rebuilt from
+  // scratch, but published shared-state keys survive so modules conditioned
+  // on a re-registered plugin's keys don't blink out during the seconds
+  // between the purge and the remounted producer's first publish. Keys for
+  // plugins that are actually gone are cleared below once the new set is
+  // known; `unregisterPlugin` (true removal) still purges unconditionally.
+  const previousPluginIds = new Set(
+    Array.from(usePluginStore.getState().plugins.values(), (p) => p.manifest.id.toLowerCase()),
+  );
+  usePluginStore.getState().clearPlugins({ preserveSharedState: true });
+  stopAllDevPolling();
+
+  // Refresh plugin-level settings wholesale from the installed payload —
+  // covers dev-overridden plugins too (their installed.json record is the
+  // settings source even when the bundle loads from the dev server).
+  usePluginStore.getState().setPluginSettingsMap(
+    new Map(plugins.map((p) => [p.id.toLowerCase(), p.settings ?? {}])),
+  );
+
+  // Dev overrides live in localStorage, which is shared across every tab of
+  // the origin — including unauthenticated display tabs. Only the editor
+  // loads dev bundles, so only the editor may skip an installed copy in
+  // favor of its override, and only the editor counts dev ids toward the
+  // "still present" set below — a display never mounts a dev-only producer,
+  // so sparing its shared-state keys would leave conditioned modules
+  // evaluating a dead producer's values forever.
+  const isEditor = surface === 'editor';
+  const devPluginIds = isEditor ? new Set(getDevPlugins().keys()) : new Set<string>();
+
+  // Now that the new plugin set is known, purge shared-state keys only for
+  // plugins that are gone from it (uninstalled or disabled). A re-registered
+  // plugin keeps its last values until its producer publishes fresh ones.
+  const nextPluginIds = new Set(
+    [...plugins.map((p) => p.id), ...devPluginIds].map((id) => id.toLowerCase()),
+  );
+  purgePluginStateKeys(
+    [...previousPluginIds].filter((id) => !nextPluginIds.has(id)),
+  );
+
+  // Load installed plugins in parallel, collect pending migrations. On the
+  // editor, skip any plugin whose dev override will load from the dev server;
+  // on a display page the override never loads, so keep the installed copy.
+  const pendingMigrations: PendingMigration[] = [];
+  const installedOnly = plugins.filter((p) => (isEditor ? !devPluginIds.has(p.id) : true));
+
+  if (installedOnly.length > 0) {
+    await Promise.allSettled(
+      installedOnly.map((plugin) => loadSinglePlugin(plugin, pendingMigrations)),
+    );
+  }
+
+  // Migrations and dev plugins only run in the editor (authenticated context).
+  // The display page is unauthenticated — PUT /api/config would fail with 401.
+  if (!isEditor) return true;
+
+  // Dev overrides before migrations: a failed override falls back to
+  // loadSinglePlugin, which can queue a migration the loop must still process.
+  await loadDevOverrides(plugins, pendingMigrations);
+  await runPendingMigrations(pendingMigrations);
+  return true;
+}
+
+async function loadSinglePlugin(
+  plugin: InstalledPlugin,
+  pendingMigrations: PendingMigration[],
+): Promise<void> {
+  const moduleType = `plugin:${plugin.moduleType}`;
+
+  try {
+    // 1. Fetch manifest
+    const manifestRes = await displayFetch(`/api/plugins/manifest/${plugin.id}`);
+    if (!manifestRes.ok) {
+      throw new Error(`Manifest fetch failed: ${manifestRes.status}`);
+    }
+    const manifest: PluginManifest = await manifestRes.json();
+
+    // 2. Validate manifest before using it
+    if (!manifest.id || !manifest.name || !manifest.moduleType) {
+      throw new Error('Invalid manifest: missing required fields');
+    }
+    if (!manifest.category) {
+      throw new Error('Invalid manifest: missing category');
+    }
+
+    // 3. Fetch bundle (version-stamped URL for cache busting)
+    const bundleRes = await displayFetch(`/api/plugins/bundle/${plugin.id}?v=${plugin.version}`);
+    if (!bundleRes.ok) {
+      throw new Error(`Bundle fetch failed: ${bundleRes.status}`);
+    }
+    const bundleText = await bundleRes.text();
+
+    // 3b. Pre-register plugin translations (if any) before the IIFE runs so
+    // synchronous calls into `__HS_SDK__.translate` from the bundle's top
+    // level resolve against real strings. Errors here only warn — the
+    // plugin still loads.
+    await loadPluginTranslations(manifest);
+
+    // 4. Execute IIFE bundle
+    const { component, configSection, stateProvider, deriveProvidedKeys, searchStateKeys } = executeBundle(bundleText, manifest);
+
+    // 5. Queue migration if server reports a version change
+    if (plugin.previousVersion && plugin.previousVersion !== manifest.version) {
+      pendingMigrations.push({
+        manifest,
+        oldVersion: plugin.previousVersion,
+        pluginId: plugin.id,
+      });
+    }
+
+    // 6. Register into module registry and Zustand store
+    registerPluginModule(manifest, { deriveProvidedKeys, hasStateProvider: Boolean(stateProvider) });
+    usePluginStore.getState().registerPlugin(moduleType, component, manifest, configSection, stateProvider, searchStateKeys);
+
+    // 7. Wire prefetchUrl into the fetch key registry if declared
+    if (manifest.prefetchUrl) {
+      const url = manifest.prefetchUrl;
+      registerFetchKey(`plugin:${manifest.moduleType}`, {
+        buildUrl: () => url,
+        ttlMs: 300_000, // default 5min TTL for plugin prefetch
+      });
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error(`Failed to load plugin ${plugin.id}:`, message);
+    usePluginStore.getState().setError(plugin.id, { message, phase: 'load' });
+  }
+}
+
+/**
+ * Execute an IIFE bundle by injecting it as a script tag.
+ * The bundle assigns to window.__HS_PLUGIN__ which we read and clean up.
+ */
+function executeBundle(
+  bundleText: string,
+  manifest: PluginManifest,
+): {
+  component: ComponentType<Record<string, unknown>>;
+  configSection?: ComponentType<PluginConfigSectionProps>;
+  stateProvider?: ComponentType<StateProviderProps>;
+  deriveProvidedKeys?: (config: Record<string, unknown>) => ProvidedStateKey[];
+  searchStateKeys?: SearchStateKeys;
+} {
+  // Clean up any previous plugin global
+  window.__HS_PLUGIN__ = undefined;
+
+  try {
+    // Create and inject script element (inline scripts execute synchronously)
+    const script = document.createElement('script');
+    script.textContent = bundleText;
+    document.head.appendChild(script);
+    document.head.removeChild(script);
+
+    // Read the plugin exports from the global (script injection above sets this as a side effect)
+    const pluginExports = window.__HS_PLUGIN__ as Record<string, unknown> | undefined;
+
+    if (!pluginExports) {
+      throw new Error('Bundle did not set window.__HS_PLUGIN__');
+    }
+
+    // Resolve the display component
+    const componentExport = manifest.exports?.component ?? 'default';
+    const component = (pluginExports[componentExport] ?? pluginExports.default) as
+      | ComponentType<Record<string, unknown>>
+      | undefined;
+
+    if (!component) {
+      throw new Error(`Bundle missing component export "${componentExport}"`);
+    }
+
+    // Resolve optional config section
+    let configSection: ComponentType<PluginConfigSectionProps> | undefined;
+    if (manifest.exports?.configSection) {
+      configSection = pluginExports[manifest.exports.configSection] as
+        | ComponentType<PluginConfigSectionProps>
+        | undefined;
+    }
+
+    // Resolve optional headless state provider (manifest-declared export,
+    // mounted by PluginServiceLayer with the demand-driven key set).
+    let stateProvider: ComponentType<StateProviderProps> | undefined;
+    if (manifest.exports?.stateProvider) {
+      stateProvider = pluginExports[manifest.exports.stateProvider] as
+        | ComponentType<StateProviderProps>
+        | undefined;
+    }
+
+    // Optional config-driven state-key deriver. Lives on the runtime
+    // registration object (not the manifest) because the manifest is static
+    // JSON and this must be a function. Conventional export name.
+    const deriveProvidedKeys =
+      typeof pluginExports.deriveProvidedKeys === 'function'
+        ? (pluginExports.deriveProvidedKeys as (
+            config: Record<string, unknown>,
+          ) => ProvidedStateKey[])
+        : undefined;
+
+    // Optional editor-only key search. Conventional named export like
+    // deriveProvidedKeys — a function can't live in the JSON manifest.
+    const searchStateKeys =
+      typeof pluginExports.searchStateKeys === 'function'
+        ? (pluginExports.searchStateKeys as SearchStateKeys)
+        : undefined;
+
+    return { component, configSection, stateProvider, deriveProvidedKeys, searchStateKeys };
+  } catch (err) {
+    throw new Error(`Bundle execution failed: ${err instanceof Error ? err.message : String(err)}`);
+  } finally {
+    window.__HS_PLUGIN__ = undefined;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// i18n — fetch + register plugin-supplied translation dictionaries
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolve the active locale for plugin translation lookup. Reads
+ * `settings.locale` from `/api/config`; on any failure (no config,
+ * network error, missing field) falls back to `DEFAULT_LOCALE`. Cached for
+ * the lifetime of a single `loadAllPlugins` call so parallel
+ * `loadSinglePlugin` invocations don't all re-issue the request.
+ *
+ * Failure-path caching is deliberately *off*: when the config fetch fails
+ * (5xx, network error, malformed JSON) we return `DEFAULT_LOCALE` but do
+ * not write the cache. The next caller retries the network. Otherwise a
+ * single transient outage during plugin load would lock every plugin into
+ * the fallback locale until the TTL expires (and would re-arm the same
+ * window every time the cache was checked, ratcheting failures forever).
+ */
+let activeLocaleCache: { value: string; fetchedAt: number } | null = null;
+const ACTIVE_LOCALE_TTL_MS = 5_000;
+
+export async function getActiveLocale(): Promise<string> {
+  const now = Date.now();
+  if (activeLocaleCache && now - activeLocaleCache.fetchedAt < ACTIVE_LOCALE_TTL_MS) {
+    return activeLocaleCache.value;
+  }
+  try {
+    const res = await displayFetch('/api/config');
+    if (!res.ok) {
+      // Don't cache the failure — let the next call retry.
+      return DEFAULT_LOCALE;
+    }
+    const config = await res.json();
+    // `/api/config` returns the raw `ScreenConfiguration`, whose locale lives
+    // at `settings.locale`. Matching the actual on-the-wire field is the only
+    // way plugin translations resolve to the user's chosen locale.
+    const locale = config?.settings?.locale;
+    const value = typeof locale === 'string' && locale ? locale : DEFAULT_LOCALE;
+    activeLocaleCache = { value, fetchedAt: now };
+    return value;
+  } catch {
+    // Don't cache the failure — let the next call retry.
+    return DEFAULT_LOCALE;
+  }
+}
+
+/**
+ * Invalidate the active-locale cache. The editor's locale-change save flow
+ * should call this immediately after a successful PUT so the next plugin
+ * translation fetch picks up the new locale without waiting for the TTL.
+ *
+ * Pair with {@link reloadPluginTranslations} to re-fetch dictionaries for
+ * all currently-loaded plugins under the new locale.
+ */
+export function clearActiveLocaleCache(): void {
+  activeLocaleCache = null;
+}
+
+/** @internal — drops the active-locale cache so tests can re-mock. */
+export function __resetPluginLoaderActiveLocaleCacheForTests(): void {
+  activeLocaleCache = null;
+}
+
+/**
+ * Validate that a fetched payload looks like a translation dictionary —
+ * a plain JSON object whose values are either strings or further nested
+ * dictionaries. Returns the value cast to `Dictionary` on success or
+ * `null` if the shape is wrong (so the caller can warn + skip).
+ */
+function isDictionary(value: unknown): value is Dictionary {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return true;
+}
+
+/**
+ * Build the URL the plugin loader fetches a translation file from. Kept as
+ * its own function so dev plugins (loaded from a remote dev server) can
+ * resolve relative to their own base URL while installed plugins fetch
+ * via the local API. The dev-server case passes a `baseUrl`; the
+ * installed-plugin case omits it and we fall back to the standard
+ * `/api/plugins/asset/<id>` shape — this is the same pattern the
+ * `manifest`/`bundle` endpoints use, just for arbitrary on-disk plugin
+ * assets.
+ *
+ * Returns `null` when the manifest path is unsafe — absolute schemes
+ * (`http:`, `file:`), parent-directory traversal (`..`), backslashes, or
+ * embedded NUL bytes. Callers must skip the registration and warn. Even
+ * though the asset route already enforces traversal containment, rejecting
+ * here means we never even issue the request and never let a manifest
+ * point at an arbitrary external origin via the dev-server passthrough.
+ */
+function buildTranslationUrl(
+  pluginId: string,
+  relativePath: string,
+  baseUrl?: string,
+): string | null {
+  // Reject absolute schemes (http://, https://, file://, javascript:, etc.).
+  // The dev-server `baseUrl` is the *only* authorized cross-origin escape
+  // hatch and it's not in the manifest path — the manifest must always be
+  // a relative path under the plugin root.
+  if (/^[a-z][a-z0-9+.-]*:/i.test(relativePath)) {
+    log.warn(
+      `translations path for "${pluginId}" rejected: absolute scheme not allowed (${relativePath}).`,
+    );
+    return null;
+  }
+  // Reject NUL bytes and backslashes — Windows-style separators or null
+  // injection should never be in a sane manifest path.
+  if (relativePath.includes('\0') || relativePath.includes('\\')) {
+    log.warn(
+      `translations path for "${pluginId}" rejected: contains NUL or backslash.`,
+    );
+    return null;
+  }
+  // Normalise separators and reject any `..` segment after splitting. We
+  // also reject empty segments produced by leading/trailing/double slashes
+  // because those are almost always a manifest typo or a probe.
+  const segments = relativePath.split('/');
+  for (const seg of segments) {
+    if (seg === '..') {
+      log.warn(
+        `translations path for "${pluginId}" rejected: parent-directory traversal (${relativePath}).`,
+      );
+      return null;
+    }
+  }
+  // Manifest paths are relative to the plugin root and may use `/` as the
+  // separator. Strip leading slashes after the safety checks above so the
+  // checks see exactly what the manifest declared.
+  const safePath = relativePath.replace(/^\/+/, '');
+  if (!safePath) {
+    log.warn(
+      `translations path for "${pluginId}" rejected: empty path.`,
+    );
+    return null;
+  }
+  if (baseUrl) {
+    return `${baseUrl.replace(/\/+$/, '')}/${safePath}`;
+  }
+  return `/api/plugins/asset/${encodeURIComponent(pluginId)}/${safePath}`;
+}
+
+// 1 MB cap on a single translation dictionary. A real-world dictionary is
+// typically a few KB; the cap is here to keep a malicious or buggy plugin
+// from pinning memory or stalling the load pipeline. Tunable if a future
+// plugin legitimately ships a much larger dictionary, but the right answer
+// at that size is to split per-namespace anyway.
+const MAX_TRANSLATION_BYTES = 1_000_000;
+
+/**
+ * Read a `Response` body in chunks, aborting if the running byte counter
+ * exceeds {@link MAX_TRANSLATION_BYTES}. Returns the decoded JSON value on
+ * success or `null` on any failure (size cap, decode error, JSON parse
+ * error). The caller logs an appropriate warning either way.
+ */
+async function readBoundedJson(res: Response, pluginId: string, tag: string): Promise<unknown | null> {
+  // Fast path: trust a sane Content-Length header before consuming.
+  const declaredLen = Number(res.headers.get('content-length'));
+  if (Number.isFinite(declaredLen) && declaredLen > MAX_TRANSLATION_BYTES) {
+    log.warn(
+      `translations for ${pluginId} (${tag}) exceeds ${MAX_TRANSLATION_BYTES}B `
+      + `(declared ${declaredLen}B) — skipping.`,
+    );
+    return null;
+  }
+
+  const reader = res.body?.getReader();
+  // No streaming body — fall back to res.json() with a best-effort length
+  // re-check. Browsers should always expose a body; this branch is mostly
+  // for older test mocks that return synthetic Responses without one.
+  if (!reader) {
+    const text = await res.text();
+    if (text.length > MAX_TRANSLATION_BYTES) {
+      log.warn(
+        `translations for ${pluginId} (${tag}) exceeds ${MAX_TRANSLATION_BYTES}B — skipping.`,
+      );
+      return null;
+    }
+    try {
+      return JSON.parse(text);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      log.warn(
+        `translations JSON parse failed for ${pluginId} (${tag}): ${message}`,
+      );
+      return null;
+    }
+  }
+
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+    received += value.byteLength;
+    if (received > MAX_TRANSLATION_BYTES) {
+      // Cancel the body so the connection (and any upstream socket) is
+      // released promptly instead of being read to completion.
+      try { await reader.cancel(); } catch { /* ignore */ }
+      log.warn(
+        `translations for ${pluginId} (${tag}) exceeds ${MAX_TRANSLATION_BYTES}B `
+        + `(read ${received}B before abort) — skipping.`,
+      );
+      return null;
+    }
+    chunks.push(value);
+  }
+
+  try {
+    const merged = new Uint8Array(received);
+    let offset = 0;
+    for (const c of chunks) {
+      merged.set(c, offset);
+      offset += c.byteLength;
+    }
+    const decoded = new TextDecoder('utf-8').decode(merged);
+    return JSON.parse(decoded);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.warn(
+      `translations JSON parse failed for ${pluginId} (${tag}): ${message}`,
+    );
+    return null;
+  }
+}
+
+/**
+ * If `manifest.translations` is set, walk the locale fallback chain and
+ * register the first dictionary that loads successfully under
+ * `plugin:<pluginId>`. Silent no-op when `translations` is absent or empty.
+ *
+ * Failures (missing file, malformed JSON, non-object payload, oversize)
+ * are logged as warnings — they never prevent the plugin from loading.
+ *
+ * **Locale-change limitation:** this runs once per plugin during
+ * `loadAllPlugins` (or `loadDevPlugin`) and registers the dictionary for
+ * the *current* active locale. When the user later switches locale at
+ * runtime, the plugin's translations stay pinned to whatever was loaded.
+ * Call {@link reloadPluginTranslations} from the locale-change save flow
+ * to re-fetch dictionaries for every loaded plugin under the new locale.
+ */
+export async function loadPluginTranslations(
+  manifest: PluginManifest,
+  baseUrl?: string,
+): Promise<void> {
+  const translations = manifest.translations;
+  if (!translations || typeof translations !== 'object') return;
+  const tags = Object.keys(translations);
+  if (tags.length === 0) return;
+
+  let activeLocale: string;
+  try {
+    activeLocale = await getActiveLocale();
+  } catch {
+    activeLocale = DEFAULT_LOCALE;
+  }
+  const chain = resolveLocaleChain(activeLocale, FALLBACK_LOCALE);
+
+  for (const tag of chain) {
+    const relativePath = translations[tag];
+    if (typeof relativePath !== 'string' || !relativePath) continue;
+
+    const url = buildTranslationUrl(manifest.id, relativePath, baseUrl);
+    if (url == null) {
+      // buildTranslationUrl already warned with the precise reason. Skip
+      // this tag entirely — the loop will try the next entry in the
+      // fallback chain.
+      continue;
+    }
+    let dict: Dictionary | null = null;
+    try {
+      const res = await displayFetch(url);
+      if (!res.ok) {
+        log.warn(
+          `translations fetch failed for ${manifest.id} (${tag}): ${res.status}`,
+        );
+        continue;
+      }
+      const json = await readBoundedJson(res, manifest.id, tag);
+      if (json == null) {
+        // readBoundedJson already warned (size cap or parse error).
+        continue;
+      }
+      if (!isDictionary(json)) {
+        log.warn(
+          `translations payload for ${manifest.id} (${tag}) is not a JSON object — skipping`,
+        );
+        continue;
+      }
+      dict = json;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      log.warn(
+        `translations fetch threw for ${manifest.id} (${tag}): ${message}`,
+      );
+      continue;
+    }
+
+    try {
+      registerPluginNamespace(manifest.id, activeLocale, dict);
+    } catch (err) {
+      // Invalid plugin IDs should already be caught upstream by the
+      // manifest validator. Surface this loudly via the warning rather
+      // than letting the throw bubble — the rest of the plugin can still
+      // load successfully.
+      const message = err instanceof Error ? err.message : String(err);
+      log.warn(
+        `translations register failed for ${manifest.id}: ${message}`,
+      );
+    }
+    return;
+  }
+}
+
+/**
+ * Re-fetch and re-register translation dictionaries for every plugin the
+ * Zustand store currently knows about, under the *current* active locale.
+ *
+ * Called by the editor's locale-change save flow after persisting the new
+ * locale to `settings.locale`. Sequence:
+ *   1. PUT /api/config with the WHOLE config snapshot, `settings.locale`
+ *      set to the new tag. The route takes a full `ScreenConfiguration`, not
+ *      a partial patch, so sending only the changed field drops everything
+ *      else.
+ *   2. clearActiveLocaleCache()           — drop the stale cached value
+ *   3. await reloadPluginTranslations()  — refill the namespace cache
+ *   4. router.refresh()                   — re-render with new strings
+ *
+ * Failures inside individual plugin reloads are swallowed (and warned by
+ * `loadPluginTranslations`) so a single broken plugin can't block the
+ * reload of the rest.
+ */
+export async function reloadPluginTranslations(): Promise<void> {
+  // Lazy-import the store so this function stays callable from contexts
+  // (server modules, tests) that haven't pulled the editor bundle in.
+  const { usePluginStore } = await import('@/stores/plugin-store');
+  const plugins = usePluginStore.getState().plugins;
+
+  // Reload dev plugins from their own dev-server origin and installed
+  // plugins from the local /api/plugins/asset route. Dev plugins live
+  // under the same plugin store entry — we look up the dev URL from the
+  // localStorage map populated by `loadDevPlugin`.
+  const devUrls = getDevPlugins();
+
+  await Promise.allSettled(
+    Array.from(plugins.values()).map(async ({ manifest }) => {
+      const dev = devUrls.get(manifest.id);
+      if (dev) {
+        await loadPluginTranslations(manifest, dev.url);
+      } else {
+        await loadPluginTranslations(manifest);
+      }
+    }),
+  );
+}

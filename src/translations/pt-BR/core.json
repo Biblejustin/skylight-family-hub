@@ -1,0 +1,210 @@
+{
+  "today": "Hoje",
+  "tomorrow": "Amanhã",
+  "yesterday": "Ontem",
+  "loading": "Carregando…",
+  "actions": {
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "remove": "Remover",
+    "add": "Adicionar",
+    "close": "Fechar",
+    "back": "Voltar",
+    "confirm": "Confirmar",
+    "save": "Salvar",
+    "done": "Pronto",
+    "edit": "Editar",
+    "clear": "Limpar",
+    "settings": "Configurações",
+    "name": "Nome",
+    "color": "Cor",
+    "icon": "Ícone",
+    "label": "Etiqueta"
+  },
+  "status": {
+    "saving": "Salvando…",
+    "connected": "Conectado",
+    "disabled": "Desativada",
+    "never": "Nunca",
+    "none": "Nenhum"
+  },
+  "relativeTime": {
+    "justNow": "agora mesmo",
+    "secondsAgo": "há {n}s",
+    "minutesAgo": "há {n} min",
+    "hoursAgo": "há {n}h",
+    "daysAgo": "há {n}d",
+    "weeksAgo": "há {n}sem"
+  },
+  "emptyDisplay": {
+    "eyebrow": "Home Screens",
+    "headline": "Ainda não há nada nesta tela",
+    "body": "No celular ou computador conectado ao seu Wi-Fi, abra",
+    "hideHint": "Prefere uma tela em branco? Configurações › Tela › Mostrar esta dica"
+  },
+  "pagination": {
+    "paused": "Pausado",
+    "previousScreen": "Tela anterior",
+    "nextScreen": "Próxima tela",
+    "resumesIn": "Continua em {time} · toque para continuar agora",
+    "tapToResume": "toque para continuar",
+    "minutes": "{count} min",
+    "seconds": "{count} s"
+  },
+  "displayNotFound": {
+    "notRegistered": "Tela ainda não adicionada",
+    "adoptionLine1": "Esta tela está conectada ao Home Screens, mas ainda não foi adicionada.",
+    "adoptionLine2": "Abra o editor no Pi principal, vá em",
+    "settingsLink": "Configurações → Telas",
+    "andClick": "e clique em",
+    "adoptLabel": "Adicionar",
+    "nextTo": "ao lado de",
+    "waitingForAdoption": "Aguardando ser adicionada…",
+    "recoveryNotice": "Esta tela ainda não está configurada, mas as outras estão. Mudando para a tela principal em {seconds} s.",
+    "goToDefault": "Ir para a tela principal agora"
+  },
+  "login": {
+    "checkingAuth": "Verificando autenticação…",
+    "ipBlocked": "Este aparelho não pode entrar",
+    "enterPasswordToContinue": "Digite sua senha para continuar",
+    "accessRestricted": "Acesso restrito",
+    "accessRestrictedDescription": "O Home Screens só aceita conexões de certos aparelhos, e este não está na lista. Entrar não vai adiantar. Peça para quem configurou o Home Screens adicionar este aparelho, ou tente de um aparelho que já é permitido.",
+    "passwordPlaceholder": "Senha",
+    "rememberMe": "Lembrar-me por 90 dias",
+    "signingIn": "Entrando…",
+    "unlock": "Desbloquear",
+    "loading": "Carregando…",
+    "backToDisplay": "Voltar para a tela",
+    "loginFailed": "Falha ao entrar",
+    "unreachable": "Não foi possível conectar ao Home Screens",
+    "errors": {
+      "wrongPassword": "Essa senha não está certa.",
+      "tooManyTries": {
+        "one": "Muitas tentativas. Espere {count} minuto e tente de novo.",
+        "other": "Muitas tentativas. Espere {count} minutos e tente de novo."
+      }
+    },
+    "forgotPassword": {
+      "link": "Esqueceu a senha?",
+      "title": "Redefinir a senha",
+      "body": "Quem configurou este aparelho pode apagar a senha. No próprio aparelho (com um teclado ligado) ou de outro computador pelo terminal, rode:",
+      "fallback": "Se esse comando não existir, apagar o arquivo {file} na pasta do Home Screens faz a mesma coisa.",
+      "after": "Depois o Home Screens abre sem senha, e você pode definir uma nova nas configurações."
+    }
+  },
+  "errors": {
+    "fetchFailed": "Não foi possível conectar para carregar estes dados",
+    "loadImagesFailed": "Falha ao carregar imagens",
+    "uploadFailed": "Falha no envio",
+    "createFolderFailed": "Falha ao criar pasta",
+    "deleteFolderFailed": "Falha ao excluir pasta",
+    "deleteImageFailed": "Falha ao excluir foto",
+    "googleExpired": "Sua conexão com o Google expirou. Entre novamente.",
+    "deviceFlowFailed": "Falha ao iniciar fluxo do dispositivo",
+    "codeExpired": "Código expirado. Tente novamente.",
+    "authorizationFailed": "Falha na autorização",
+    "startSignInFailed": "Falha ao iniciar o login"
+  },
+  "days": {
+    "sunday": "Domingo",
+    "monday": "Segunda-feira",
+    "tuesday": "Terça-feira",
+    "wednesday": "Quarta-feira",
+    "thursday": "Quinta-feira",
+    "friday": "Sexta-feira",
+    "saturday": "Sábado"
+  },
+  "meal": {
+    "difficulty": {
+      "easy": "Fácil",
+      "medium": "Médio",
+      "hard": "Difícil"
+    },
+    "tags": {
+      "breakfast": "Café da manhã",
+      "lunch": "Almoço",
+      "dinner": "Jantar",
+      "snack": "Lanche",
+      "quick": "Rápida",
+      "healthy": "Saudável",
+      "vegetarian": "Vegetariana",
+      "vegan": "Vegana",
+      "comfort": "Reconfortante",
+      "spicy": "Apimentada",
+      "kid-friendly": "Para crianças",
+      "meal-prep": "Marmita",
+      "gluten-free": "Sem glúten",
+      "dairy-free": "Sem lactose",
+      "batch-cook": "Em grande quantidade"
+    },
+    "ingredientCategories": {
+      "produce": "Hortifrúti",
+      "dairy": "Laticínios",
+      "meat": "Carnes",
+      "seafood": "Frutos do mar",
+      "bakery": "Padaria",
+      "pantry": "Despensa",
+      "frozen": "Congelados",
+      "beverages": "Bebidas",
+      "other": "Outros"
+    },
+    "grocery": {
+      "categoryLabels": {
+        "produce": "Hortifrúti",
+        "dairy": "Laticínios e ovos",
+        "meat": "Carnes e frutos do mar",
+        "seafood": "Carnes e frutos do mar",
+        "bakery": "Padaria",
+        "pantry": "Despensa",
+        "frozen": "Congelados",
+        "beverages": "Bebidas",
+        "other": "Outros"
+      }
+    }
+  },
+  "timer": {
+    "stepCount": "Passo {current} de {total}",
+    "quickName": "Timer de {minutes} minutos",
+    "almostDone": "Quase lá!",
+    "done": "Pronto!",
+    "paused": "Pausado",
+    "allDone": "Tudo pronto!",
+    "timesUp": "O tempo acabou!",
+    "finished": "{name} concluído",
+    "stepsDone": "passos feitos",
+    "totalTime": "tempo total",
+    "nextUp": "A seguir:",
+    "minutesShort": "{minutes} min",
+    "moreSteps": "+{count} mais",
+    "progressWords": "{done} feitos · {left} restantes",
+    "quickNameSeconds": "Timer de {seconds} segundos",
+    "quickNameClock": "Timer de {time}"
+  },
+  "launcher": {
+    "heading": "Para onde você quer ir?",
+    "remote": {
+      "title": "Controle da família",
+      "body": "Tarefas, refeições, timers e as telas"
+    },
+    "chores": {
+      "title": "Tarefas das crianças",
+      "body": "Marcar as tarefas de hoje"
+    },
+    "display": {
+      "title": "Tela",
+      "body": "Ver o que a parede está mostrando"
+    },
+    "editor": {
+      "title": "Editor",
+      "body": "Monte suas telas. Funciona melhor em um notebook ou computador."
+    },
+    "editorAddressHint": "Abra este endereço em um notebook para montar suas telas:",
+    "editorAddressLabel": "Endereço do editor",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "openEditor": "Abrir o editor"
+  },
+  "alerts": {
+    "dismiss": "Dispensar"
+  }
+}

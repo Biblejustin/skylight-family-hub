@@ -1,0 +1,225 @@
+{
+  "_type": "home-screens-layout",
+  "_version": 1,
+  "metadata": {
+    "name": "Weather Station",
+    "description": "Comprehensive weather display with current conditions, forecasts, air quality, and rain radar",
+    "exportedAt": "2026-01-01T00:00:00.000Z",
+    "configVersion": 10,
+    "sourceDisplay": { "width": 1920, "height": 1080 },
+    "screenCount": 1,
+    "moduleCount": 7
+  },
+  "visual": {
+    "rotationIntervalMs": 30000,
+    "transitionEffect": "fade",
+    "transitionDuration": 0.6
+  },
+  "screens": [
+    {
+      "id": "tpl-wx-ls-s1",
+      "name": "Weather Station",
+      "backgroundImage": "",
+      "modules": [
+        {
+          "id": "tpl-wx-ls-m1",
+          "type": "weather",
+          "position": { "x": 20, "y": 20 },
+          "size": { "w": 600, "h": 340 },
+          "zIndex": 1,
+          "config": {
+            "view": "current",
+            "iconSet": "color",
+            "provider": "global",
+            "hoursToShow": 8,
+            "showFeelsLike": true,
+            "daysToShow": 5,
+            "showHighLow": true,
+            "showPrecipAmount": false,
+            "showPrecipitation": true,
+            "showHumidity": true,
+            "showWind": true,
+            "showPressure": false,
+            "showVisibility": false,
+            "showDewPoint": false,
+            "hideWhenNoAlerts": true
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-wx-ls-m2",
+          "type": "weather",
+          "position": { "x": 640, "y": 20 },
+          "size": { "w": 640, "h": 340 },
+          "zIndex": 1,
+          "config": {
+            "view": "hourly",
+            "iconSet": "color",
+            "provider": "global",
+            "hoursToShow": 12,
+            "showFeelsLike": true,
+            "daysToShow": 5,
+            "showHighLow": true,
+            "showPrecipAmount": false,
+            "showPrecipitation": true,
+            "showHumidity": true,
+            "showWind": true,
+            "showPressure": false,
+            "showVisibility": false,
+            "showDewPoint": false,
+            "hideWhenNoAlerts": true
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-wx-ls-m3",
+          "type": "rain-map",
+          "position": { "x": 1300, "y": 20 },
+          "size": { "w": 600, "h": 1040 },
+          "zIndex": 1,
+          "config": {
+            "latitude": 0,
+            "longitude": 0,
+            "zoom": 6,
+            "animationSpeedMs": 500,
+            "extraDelayLastFrameMs": 1000,
+            "colorScheme": 1,
+            "smooth": true,
+            "showSnow": true,
+            "opacity": 0.8,
+            "showTimestamp": true,
+            "showTimeline": true,
+            "refreshIntervalMs": 300000,
+            "mapStyle": "dark"
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-wx-ls-m4",
+          "type": "weather",
+          "position": { "x": 20, "y": 380 },
+          "size": { "w": 1260, "h": 320 },
+          "zIndex": 1,
+          "config": {
+            "view": "daily",
+            "iconSet": "color",
+            "provider": "global",
+            "hoursToShow": 8,
+            "showFeelsLike": true,
+            "daysToShow": 7,
+            "showHighLow": true,
+            "showPrecipAmount": false,
+            "showPrecipitation": true,
+            "showHumidity": true,
+            "showWind": true,
+            "showPressure": false,
+            "showVisibility": false,
+            "showDewPoint": false,
+            "hideWhenNoAlerts": true
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-wx-ls-m5",
+          "type": "sunrise-sunset",
+          "position": { "x": 20, "y": 720 },
+          "size": { "w": 400, "h": 340 },
+          "zIndex": 1,
+          "config": {
+            "showDayLength": true,
+            "showGoldenHour": true
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-wx-ls-m6",
+          "type": "air-quality",
+          "position": { "x": 440, "y": 720 },
+          "size": { "w": 400, "h": 340 },
+          "zIndex": 1,
+          "config": {
+            "showAQI": true,
+            "showPollutants": true,
+            "refreshIntervalMs": 600000
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-wx-ls-m7",
+          "type": "moon-phase",
+          "position": { "x": 860, "y": 720 },
+          "size": { "w": 420, "h": 340 },
+          "zIndex": 1,
+          "config": {
+            "showIllumination": true,
+            "showMoonTimes": true
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        }
+      ]
+    }
+  ]
+}

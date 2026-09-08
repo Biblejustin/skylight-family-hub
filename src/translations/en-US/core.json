@@ -1,0 +1,210 @@
+{
+  "today": "Today",
+  "tomorrow": "Tomorrow",
+  "yesterday": "Yesterday",
+  "loading": "Loading…",
+  "actions": {
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "remove": "Remove",
+    "add": "Add",
+    "close": "Close",
+    "back": "Back",
+    "confirm": "Confirm",
+    "save": "Save",
+    "done": "Done",
+    "edit": "Edit",
+    "clear": "Clear",
+    "settings": "Settings",
+    "name": "Name",
+    "color": "Color",
+    "icon": "Icon",
+    "label": "Label"
+  },
+  "status": {
+    "saving": "Saving…",
+    "connected": "Connected",
+    "disabled": "Disabled",
+    "never": "Never",
+    "none": "None"
+  },
+  "relativeTime": {
+    "justNow": "just now",
+    "secondsAgo": "{n}s ago",
+    "minutesAgo": "{n}m ago",
+    "hoursAgo": "{n}h ago",
+    "daysAgo": "{n}d ago",
+    "weeksAgo": "{n}w ago"
+  },
+  "emptyDisplay": {
+    "eyebrow": "Home Screens",
+    "headline": "Nothing on this screen yet",
+    "body": "On a phone or computer on your home Wi-Fi, open",
+    "hideHint": "Want a blank screen instead? Settings › Screen › Show this hint"
+  },
+  "pagination": {
+    "paused": "Paused",
+    "previousScreen": "Previous screen",
+    "nextScreen": "Next screen",
+    "resumesIn": "Resumes in {time} · tap to resume now",
+    "tapToResume": "tap to resume",
+    "minutes": "{count} min",
+    "seconds": "{count} sec"
+  },
+  "displayNotFound": {
+    "notRegistered": "Display Not Added Yet",
+    "adoptionLine1": "This display is connected to Home Screens but hasn't been added yet.",
+    "adoptionLine2": "Open the editor on the main Pi, go to",
+    "settingsLink": "Settings → Displays",
+    "andClick": "and click",
+    "adoptLabel": "Add",
+    "nextTo": "next to",
+    "waitingForAdoption": "Waiting to be added…",
+    "recoveryNotice": "This display isn't set up yet, but your other displays are. Switching to the main display in {seconds}s.",
+    "goToDefault": "Go to the main display now"
+  },
+  "login": {
+    "checkingAuth": "Checking authentication…",
+    "ipBlocked": "This device isn't allowed to sign in",
+    "enterPasswordToContinue": "Enter your password to continue",
+    "accessRestricted": "Access restricted",
+    "accessRestrictedDescription": "Home Screens only accepts connections from certain devices, and this one isn't on the list. Signing in won't help. Ask whoever set up Home Screens to add this device, or try again from a device that is already allowed.",
+    "passwordPlaceholder": "Password",
+    "rememberMe": "Remember me for 90 days",
+    "signingIn": "Signing in…",
+    "unlock": "Unlock",
+    "loading": "Loading…",
+    "backToDisplay": "Back to display",
+    "loginFailed": "Login failed",
+    "unreachable": "Can't reach Home Screens",
+    "errors": {
+      "wrongPassword": "That password isn't right.",
+      "tooManyTries": {
+        "one": "Too many tries. Wait {count} minute, then try again.",
+        "other": "Too many tries. Wait {count} minutes, then try again."
+      }
+    },
+    "forgotPassword": {
+      "link": "Forgot the password?",
+      "title": "Resetting the password",
+      "body": "Whoever set this device up can clear the password. On the device (plug in a keyboard), or from another computer using a terminal, run:",
+      "fallback": "If that command isn't there, deleting the file {file} in the Home Screens folder does the same thing.",
+      "after": "Home Screens then opens without a password, and you can set a new one in Settings."
+    }
+  },
+  "errors": {
+    "fetchFailed": "Couldn't connect to load this data",
+    "loadImagesFailed": "Failed to load images",
+    "uploadFailed": "Upload failed",
+    "createFolderFailed": "Failed to create folder",
+    "deleteFolderFailed": "Failed to delete folder",
+    "deleteImageFailed": "Failed to delete photo",
+    "googleExpired": "Your Google connection has expired. Please sign in again.",
+    "deviceFlowFailed": "Failed to start device flow",
+    "codeExpired": "Code expired. Please try again.",
+    "authorizationFailed": "Authorization failed",
+    "startSignInFailed": "Failed to start sign-in"
+  },
+  "days": {
+    "sunday": "Sunday",
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday"
+  },
+  "meal": {
+    "difficulty": {
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
+    "tags": {
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "snack": "Snack",
+      "quick": "Quick",
+      "healthy": "Healthy",
+      "vegetarian": "Vegetarian",
+      "vegan": "Vegan",
+      "comfort": "Comfort",
+      "spicy": "Spicy",
+      "kid-friendly": "Kid-Friendly",
+      "meal-prep": "Meal-Prep",
+      "gluten-free": "Gluten-Free",
+      "dairy-free": "Dairy-Free",
+      "batch-cook": "Batch-Cook"
+    },
+    "ingredientCategories": {
+      "produce": "Produce",
+      "dairy": "Dairy",
+      "meat": "Meat",
+      "seafood": "Seafood",
+      "bakery": "Bakery",
+      "pantry": "Pantry",
+      "frozen": "Frozen",
+      "beverages": "Beverages",
+      "other": "Other"
+    },
+    "grocery": {
+      "categoryLabels": {
+        "produce": "Produce",
+        "dairy": "Dairy & Eggs",
+        "meat": "Meat & Seafood",
+        "seafood": "Meat & Seafood",
+        "bakery": "Bakery",
+        "pantry": "Pantry",
+        "frozen": "Frozen",
+        "beverages": "Beverages",
+        "other": "Other"
+      }
+    }
+  },
+  "timer": {
+    "stepCount": "Step {current} of {total}",
+    "quickName": "{minutes} minute timer",
+    "almostDone": "Almost done!",
+    "done": "Done!",
+    "paused": "Paused",
+    "allDone": "All done!",
+    "timesUp": "Time's up!",
+    "finished": "{name} finished",
+    "stepsDone": "steps done",
+    "totalTime": "total time",
+    "nextUp": "Next up:",
+    "minutesShort": "{minutes} min",
+    "moreSteps": "+{count} more",
+    "progressWords": "{done} done · {left} to go",
+    "quickNameSeconds": "{seconds} second timer",
+    "quickNameClock": "{time} timer"
+  },
+  "launcher": {
+    "heading": "Where do you want to go?",
+    "remote": {
+      "title": "Family remote",
+      "body": "Chores, meals, timers, and the displays"
+    },
+    "chores": {
+      "title": "Kids' chores",
+      "body": "Check off today's chores"
+    },
+    "display": {
+      "title": "Display",
+      "body": "See what the wall shows"
+    },
+    "editor": {
+      "title": "Editor",
+      "body": "Design your screens. Works best on a laptop or desktop."
+    },
+    "editorAddressHint": "Open this address on a laptop to design your screens:",
+    "editorAddressLabel": "Editor address",
+    "copy": "Copy",
+    "copied": "Copied",
+    "openEditor": "Open the editor"
+  },
+  "alerts": {
+    "dismiss": "Dismiss"
+  }
+}

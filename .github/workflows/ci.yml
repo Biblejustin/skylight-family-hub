@@ -1,0 +1,126 @@
+name: Docker smoke test
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: family-hub-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Every run owns disposable volumes. Never connect CI to household data.
+      COMPOSE_PROJECT_NAME: family-hub-ci-${{ github.run_id }}-${{ github.run_attempt }}
+      HUB_BIND_ADDRESS: 127.0.0.1
+      HUB_PORT: "3000"
+      TZ: UTC
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate Compose and build Linux image
+        run: |
+          docker compose config --quiet
+          docker compose build
+
+      - name: Start fresh installation
+        run: docker compose up -d --wait --wait-timeout 120
+
+      - name: Check empty setup and initializer preservation
+        run: |
+          docker compose exec -T family-hub node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFile, writeFile } from 'node:fs/promises';
+          import { execFileSync } from 'node:child_process';
+
+          const response = await fetch('http://127.0.0.1:3000/api/auth/status', {
+            signal: AbortSignal.timeout(5000),
+          });
+          assert.equal(response.status, 200, 'Auth status must respond');
+          const status = await response.json();
+          assert.equal(status.authEnabled, false, 'Fresh setup has no password');
+          assert.equal(status.authenticated, false);
+          assert.equal(status.hasDisplayToken, false);
+
+          const page = await fetch('http://127.0.0.1:3000/display', { signal: AbortSignal.timeout(10000) });
+          assert.equal(page.status, 200, 'Display server rendering must load');
+          assert.ok((await page.text()).includes('<html'), 'Display returns HTML');
+          const feed = await fetch('http://127.0.0.1:3000/api/calendar', { signal: AbortSignal.timeout(10000) });
+          assert.equal(feed.status, 400, 'Calendar route should load and report empty setup');
+          assert.match((await feed.json()).error, /No calendars configured/);
+
+          const configPath = '/app/data/config.json';
+          const raw = await readFile(configPath, 'utf8');
+          const config = JSON.parse(raw);
+          assert.deepEqual(config.screens.map(screen => screen.id), ['calendar', 'chores', 'photos']);
+          assert.deepEqual(config.screens.flatMap(screen => screen.modules.map(module => module.type)), [
+            'fullscreen-calendar', 'fullscreen-chore-chart', 'fullscreen-photo',
+          ]);
+          assert.equal(config.settings.timezone, 'UTC', 'New setup uses container TZ');
+          const calendar = config.settings.calendar;
+          assert.equal(calendar.googleCalendarId, '');
+          assert.deepEqual(calendar.googleCalendarIds, []);
+          assert.deepEqual(calendar.icalSources, []);
+          assert.deepEqual(calendar.icloudSources ?? [], []);
+          assert.ok(!/(?:https?|webcal):\/\//i.test(raw), 'Fresh setup must not contain external feed/photo URLs');
+          const photos = config.screens.find(screen => screen.id === 'photos').modules[0].config;
+          assert.equal(photos.source, 'local');
+          assert.equal(photos.directory, '');
+
+          // Alter real settings so rerunning the initializer cannot pass by
+          // overwriting existing configuration with an identical template.
+          config.settings.timezone = 'Pacific/Honolulu';
+          config.settings.rotationIntervalMs = 12345;
+          const saved = JSON.stringify(config, null, 2) + '\n';
+          await writeFile(configPath, saved, { mode: 0o600 });
+          execFileSync(process.execPath, ['scripts/init-family-hub.mjs'], { stdio: 'inherit' });
+          assert.equal(await readFile(configPath, 'utf8'), saved, 'Initializer must preserve existing bytes');
+
+          await writeFile('/app/data/ci-persistence.txt', 'synthetic data survives recreation\n', { mode: 0o600 });
+          await writeFile('/app/public/backgrounds/.ci-persistence.txt', 'synthetic background survives recreation\n', { mode: 0o600 });
+          console.log('Fresh setup, no-overwrite initialization, and writable volumes passed.');
+          NODE
+
+      - name: Recreate container and verify persisted state
+        run: |
+          docker compose up -d --force-recreate --wait --wait-timeout 120
+          docker compose exec -T family-hub node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFile } from 'node:fs/promises';
+          assert.equal(await readFile('/app/data/ci-persistence.txt', 'utf8'), 'synthetic data survives recreation\n');
+          assert.equal(await readFile('/app/public/backgrounds/.ci-persistence.txt', 'utf8'), 'synthetic background survives recreation\n');
+          const config = JSON.parse(await readFile('/app/data/config.json', 'utf8'));
+          assert.equal(config.settings.timezone, 'Pacific/Honolulu');
+          assert.equal(config.settings.rotationIntervalMs, 12345);
+          console.log('Both volumes and existing configuration survived recreation.');
+          NODE
+          curl --fail --silent --show-error --max-time 10 http://127.0.0.1:3000/api/auth/status |
+            docker compose exec -T family-hub node -e '
+              const assert = require("node:assert/strict");
+              const status = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
+              assert.equal(status.authEnabled, false);
+              assert.equal(status.authenticated, false);
+              console.log("Published HTTP port responds after recreation.");
+            '
+
+      - name: Show failure diagnostics
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs --no-color --tail=100 family-hub
+
+      - name: Remove disposable CI containers and volumes
+        if: always()
+        run: docker compose down --volumes --remove-orphans

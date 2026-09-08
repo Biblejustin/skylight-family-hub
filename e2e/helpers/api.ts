@@ -1,0 +1,207 @@
+import { expect, type APIRequestContext } from '@playwright/test';
+import type { ScreenConfiguration } from '@/types/config';
+
+export async function getConfig(request: APIRequestContext): Promise<ScreenConfiguration> {
+  const res = await request.get('/api/config');
+  expect(res.ok()).toBe(true);
+  return res.json();
+}
+
+export async function putConfig(request: APIRequestContext, config: ScreenConfiguration): Promise<void> {
+  const res = await request.put('/api/config', { data: config });
+  expect(res.ok()).toBe(true);
+}
+
+/**
+ * Secrets live in `data/secrets.json`, outside config.json, so the per-test
+ * `PUT /api/config` reset leaves whatever an earlier spec in the same worker
+ * seeded. A spec that asserts a key is missing has to clear it first, or it
+ * passes or fails on file ordering.
+ */
+export async function clearSecrets(request: APIRequestContext, keys: string[]): Promise<void> {
+  for (const key of keys) {
+    const res = await request.delete('/api/secrets', { data: { key } });
+    expect(res.ok()).toBe(true);
+  }
+}
+
+/**
+ * A member + a daily fixed-rotation chore assigned to them. A fixed daily chore
+ * appears in "today"'s list regardless of the calendar date, so specs can assert
+ * the chore name deterministically. Seeded via `PUT /api/chores/data`.
+ */
+export const CHORE_DATA = {
+  members: [{ id: 'm1', name: 'Avery', emoji: '🦊', color: '#f59e0b' }],
+  chores: [{
+    id: 'c1',
+    name: 'Feed the dog',
+    emoji: '🐶',
+    points: 1,
+    frequency: 'daily',
+    daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+    timeOfDay: 'anytime',
+    assigneeIds: ['m1'],
+    rotation: 'fixed',
+  }],
+};
+
+export async function seedChores(request: APIRequestContext, data: unknown = CHORE_DATA): Promise<void> {
+  // Clearing the store needs `force`, same as ChoresTab's own save: the route
+  // refuses an empty payload over non-empty data. Specs that seed an empty
+  // store (the empty-state suite) are doing it deliberately, and the worker's
+  // sandbox persists across tests, so without this they 409 whenever an
+  // earlier spec left chores behind.
+  const d = data as { members?: unknown[]; chores?: unknown[] } | null;
+  const isEmpty = Array.isArray(d?.members) && d.members.length === 0
+    && Array.isArray(d?.chores) && d.chores.length === 0;
+  const res = await request.put('/api/chores/data', {
+    data: isEmpty ? { ...d, force: true } : data,
+  });
+  expect(res.ok()).toBe(true);
+}
+
+/** Local YYYY-MM-DD for a date offset from today, matching how the meal planner keys plan entries. */
+function isoDate(offsetDays = 0): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * One saved meal planned for today. The default week/today meal-planner views
+ * filter the plan to the current week, so the plan date is stamped to "today"
+ * at call time rather than a fixed string that would fall out of the window.
+ * Seeded via `PUT /api/meals/data`.
+ */
+export function mealData() {
+  return {
+    savedMeals: [{ id: 'meal-1', name: 'Spaghetti Night', emoji: '🍝', prepTime: 25 }],
+    plan: [{ slot: 'dinner', mealId: 'meal-1', date: isoDate(0) }],
+  };
+}
+
+export async function seedMeals(request: APIRequestContext, data: unknown = mealData()): Promise<void> {
+  // `force` for the same reason as seedChores — /api/meals/data carries the
+  // identical empty-overwrite guard.
+  const d = data as { savedMeals?: unknown[]; plan?: unknown[] } | null;
+  const isEmpty = Array.isArray(d?.savedMeals) && d.savedMeals.length === 0
+    && Array.isArray(d?.plan) && d.plan.length === 0;
+  const res = await request.put('/api/meals/data', {
+    data: isEmpty ? { ...d, force: true } : data,
+  });
+  expect(res.ok()).toBe(true);
+}
+
+/**
+ * A single calendar event spanning today, for stubbing `/api/calendar`. The
+ * calendar views only surface events within a few days / the agenda window of
+ * the test clock, so the date is stamped at call time rather than hardcoded.
+ * Returns the bare `CalendarEvent[]` array the route serves.
+ */
+export function todayCalendarEvents() {
+  const start = new Date();
+  start.setHours(0, 1, 0, 0);
+  const end = new Date();
+  end.setDate(end.getDate() + 1);
+  end.setHours(23, 59, 0, 0);
+  const iso = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:00`;
+  return [{
+    id: 'evt-1',
+    title: 'Dentist Appointment',
+    start: iso(start),
+    end: iso(end),
+    allDay: false,
+    location: '123 Main St',
+    calendarColor: '#4073ff',
+    sourceId: 'cal-primary',
+    sourceName: 'Personal',
+  }];
+}
+
+/**
+ * Simulate a display heartbeat by posting a status report the way a Pi kiosk
+ * does. requireDisplayAuth is a no-op while auth is disabled, so no token is
+ * needed. The remote control surface gates its screen-nav buttons on a live
+ * heartbeat (screenCount > 0 and a non-null status), so a spec that clicks
+ * "Next screen" must seed one first. With no `?display=` param and no body
+ * displayId this lands in the legacy `__default__` slot the single-display
+ * remote polls.
+ */
+export async function postHeartbeat(
+  request: APIRequestContext,
+  overrides: {
+    screenCount?: number;
+    currentIndex?: number;
+    display?: string;
+    displayState?: 'active' | 'dimmed' | 'asleep';
+    /** Extra heartbeat facts the remote confirms against (see DisplayStatus). */
+    brightness?: number;
+    timerSessionId?: string | null;
+    activeAlerts?: number;
+    activeProfile?: string | null;
+  } = {},
+): Promise<void> {
+  const {
+    screenCount = 2, currentIndex = 0, display, displayState = 'active',
+    brightness, timerSessionId, activeAlerts, activeProfile = null,
+  } = overrides;
+  // A specific `display` lands the heartbeat in that display's statusMap slot
+  // (via ?display= and a matching body displayId); omit it for the legacy
+  // __default__ slot the single-display remote polls.
+  const url = display ? `/api/display/status?display=${encodeURIComponent(display)}` : '/api/display/status';
+  const res = await request.post(url, {
+    data: {
+      ...(display ? { displayId: display } : {}),
+      currentScreen: { index: currentIndex, id: `screen-${currentIndex}`, name: `Screen ${currentIndex}` },
+      screenCount,
+      activeProfile,
+      displayState,
+      timestamp: Date.now(),
+      ...(brightness !== undefined ? { brightness } : {}),
+      ...(timerSessionId !== undefined ? { timerSessionId } : {}),
+      ...(activeAlerts !== undefined ? { activeAlerts } : {}),
+    },
+  });
+  expect(res.ok()).toBe(true);
+}
+
+/**
+ * Seed a display shared-state snapshot into the hub the way a Pi kiosk does: a
+ * status heartbeat carrying a `sharedState` field. recordSharedStateReport
+ * replaces the whole slot, so each call is the latest snapshot.
+ * requireDisplayAuth is a no-op while auth is disabled.
+ *
+ * ALWAYS pass a per-file-unique `display` id (with a matching entry in
+ * `config.displays` and a `?display=<id>` editor URL): the worker's server is
+ * shared by every spec file the worker runs, and the hub's snapshot slots
+ * have no reset seam — a seed into the legacy `__default__` slot would leak
+ * into any later file whose test expects "never reported" there.
+ */
+export async function seedDisplaySharedState(
+  request: APIRequestContext,
+  entries: Record<string, string>,
+  display?: string,
+  /** Optional provider-health snapshot, keyed by plugin id — rides the same
+   *  heartbeat field the real reporter uses (recordProviderHealthReport). */
+  providerHealth?: Record<string, { message: string; since: number }>,
+): Promise<void> {
+  const now = Date.now();
+  const sharedState: Record<string, { value: string; updatedAt: number }> = {};
+  for (const [key, value] of Object.entries(entries)) sharedState[key] = { value, updatedAt: now };
+  const url = display
+    ? `/api/display/status?display=${encodeURIComponent(display)}`
+    : '/api/display/status';
+  const res = await request.post(url, {
+    data: {
+      ...(display ? { displayId: display } : {}),
+      currentScreen: { index: 0, id: 's1', name: 'S1' },
+      screenCount: 1,
+      displayState: 'active',
+      timestamp: now,
+      sharedState,
+      ...(providerHealth ? { providerHealth } : {}),
+    },
+  });
+  expect(res.ok()).toBe(true);
+}

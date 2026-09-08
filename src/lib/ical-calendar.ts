@@ -1,0 +1,319 @@
+import ical from 'node-ical';
+import type { VEvent } from 'node-ical';
+import type { ICalSource } from '@/types/config';
+import type { CalendarEvent } from '@/types/config';
+import { fetchWithTimeout } from '@/lib/api-utils';
+import { compareEventStarts } from '@/lib/calendar-utils';
+import { settleSourceFetches, type SourceFetchResult } from '@/lib/calendar-source-status';
+import { normalizeIcsTimezones } from '@/lib/ics-timezones';
+import { isSafeExternalUrl, isSafeLocalOrExternalUrl } from '@/lib/url-safety';
+import { logger } from '@/lib/logger';
+
+const log = logger('ical');
+
+const FETCH_TIMEOUT_MS = 15_000;
+const MAX_REDIRECTS = 5;
+const MAX_BODY_BYTES = 4 * 1024 * 1024;
+
+/** Extract the string value from a node-ical ParameterValue (string | {val, params}). */
+function paramValue(v: unknown): string {
+  if (typeof v === 'string') return v;
+  if (v && typeof v === 'object' && 'val' in v) return String((v as { val: unknown }).val);
+  return '';
+}
+
+/** Format a Date as YYYY-MM-DD (local, not UTC — avoids timezone shift for all-day events). */
+function toDateString(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** The slice of a source the ICS parser needs to label events (shared with the CalDAV path). */
+export interface EventSourceMeta {
+  id: string;
+  name: string;
+  color: string;
+}
+
+/**
+ * Parse one ICS document into CalendarEvents within [from, to).
+ * Handles recurring events (expanded locally with overrides/exdates)
+ * and all-day events. Feeds that name timezones by abbreviation instead of
+ * IANA zone are repaired first (see `normalizeIcsTimezones`). Throws on
+ * malformed ICS — callers decide how a bad document degrades (skip the feed,
+ * skip the object, …).
+ */
+export function parseICSEvents(
+  icsText: string,
+  source: EventSourceMeta,
+  from: Date,
+  to: Date,
+): CalendarEvent[] {
+  const { text, replacements } = normalizeIcsTimezones(icsText);
+  if (replacements.size) {
+    const summary = [...replacements].map(([tzid, zone]) => `${tzid} -> ${zone ?? 'local time'}`).join(', ');
+    log.info(`Repaired non-standard time zones in "${source.name}" (${source.id}): ${summary}`);
+  }
+  const components = ical.sync.parseICS(text);
+  const events: CalendarEvent[] = [];
+
+  for (const component of Object.values(components)) {
+    if (!component || component.type !== 'VEVENT') continue;
+    const vevent = component as VEvent;
+
+    if (vevent.rrule) {
+      // Expand recurring event within the time window
+      const instances = ical.expandRecurringEvent(vevent, {
+        from,
+        to,
+        includeOverrides: true,
+        excludeExdates: true,
+        expandOngoing: true,
+      });
+
+      for (const instance of instances) {
+        const ev = instanceToCalendarEvent(instance.event, instance.start, instance.end, instance.isFullDay, source);
+        if (ev) events.push(ev);
+      }
+    } else {
+      // Non-recurring event — check if it overlaps the time window
+      if (!vevent.start) continue;
+
+      const isAllDay = vevent.datetype === 'date';
+      const evStart = vevent.start;
+      const evEnd = vevent.end ?? computeFallbackEnd(evStart, isAllDay);
+
+      // Overlap check: event.end > timeMin && event.start < timeMax
+      if (evEnd > from && evStart < to) {
+        const ev = instanceToCalendarEvent(vevent, evStart, evEnd, isAllDay, source);
+        if (ev) events.push(ev);
+      }
+    }
+  }
+
+  return events;
+}
+
+type SourceOutcome = { events: CalendarEvent[]; results: SourceFetchResult[] };
+
+/**
+ * Fetch and parse one ICS feed into events within [from, to). Never
+ * rejects on a bad feed: an unusable link, an HTTP error, or a document that
+ * is not a calendar becomes a failing `results` entry with plain-language
+ * wording (and an i18n `messageKey`). Network failures inside
+ * `fetchWithTimeout` still reject; callers map those to `linkUnreachable`.
+ *
+ * Links that point into the home network are refused unless the source has
+ * `homeNetwork: true`, and every redirect hop is checked the same way.
+ */
+export async function fetchICalSource(source: ICalSource, from: Date, to: Date): Promise<SourceOutcome> {
+  const fail = (error: string, messageKey: string, messageParams?: Record<string, string | number>): SourceOutcome =>
+    ({ events: [], results: [{ id: source.id, name: source.name, ok: false, error, messageKey, messageParams }] });
+
+  // Validate the URL, normalizing webcal:// to https://
+  let fetchUrl = source.url;
+  let parsed: URL;
+  try {
+    parsed = new URL(fetchUrl);
+  } catch {
+    log.warn(`Invalid URL for source "${source.name}" (${source.id})`);
+    return fail("The link isn't a valid web address", 'linkInvalid');
+  }
+  if (parsed.protocol === 'webcal:') {
+    fetchUrl = fetchUrl.replace(/^webcal:/i, 'https:');
+    parsed = new URL(fetchUrl);
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    log.warn(`Rejected non-HTTP URL for source "${source.name}" (${source.id})`);
+    return fail("The link isn't a valid web address", 'linkInvalid');
+  }
+
+  // A calendar link is typed by a person, so it can point anywhere, including
+  // at the router, the hub itself, or a cloud metadata address. Public links
+  // go through the strict check; a household that runs its own calendar server
+  // turns on "Home network" for that one feed to reach a private address.
+  // Redirects are followed by hand so every hop is checked the same way:
+  // letting fetch follow them would let an allowed public host send us to
+  // http://169.254.169.254/ or http://192.168.1.1/ and have us fetch it.
+  const isSafe = (url: string) =>
+    source.homeNetwork === true ? isSafeLocalOrExternalUrl(url) : isSafeExternalUrl(url);
+
+  const blocked = () => {
+    log.warn(`Refused to fetch the link for source "${source.name}" (${source.id})`);
+    return fail("That link can't be used. Check it and try again.", 'linkBlocked');
+  };
+
+  if (!(await isSafe(fetchUrl))) return blocked();
+
+  let current = fetchUrl;
+  let res!: Response;
+  for (let hop = 0; ; hop++) {
+    res = await fetchWithTimeout(current, { timeout: FETCH_TIMEOUT_MS, redirect: 'manual' });
+    if (res.status < 300 || res.status >= 400) break;
+    const location = res.headers.get('location');
+    if (!location) break;
+    if (hop === MAX_REDIRECTS) {
+      log.warn(`Too many redirects for source "${source.name}" (${source.id})`);
+      return fail('Could not reach the link', 'linkUnreachable');
+    }
+    let next: string;
+    try {
+      next = new URL(location, current).toString();
+    } catch {
+      return blocked();
+    }
+    if (!(await isSafe(next))) return blocked();
+    current = next;
+  }
+
+  if (!res.ok) {
+    log.warn(`Fetch failed for source "${source.name}" (${source.id}): HTTP ${res.status}`);
+    return fail(`Could not reach the link (HTTP ${res.status})`, 'linkHttpError', { status: res.status });
+  }
+
+  // Cap the download so a link pointing at something huge cannot exhaust memory.
+  const declaredLength = Number(res.headers.get('content-length') ?? 0);
+  if (declaredLength > MAX_BODY_BYTES) {
+    log.warn(`Source "${source.name}" (${source.id}) returned too much data`);
+    return fail("The link didn't return a readable calendar", 'linkUnreadable');
+  }
+  const bytes = await res.arrayBuffer();
+  if (bytes.byteLength > MAX_BODY_BYTES) {
+    log.warn(`Source "${source.name}" (${source.id}) returned too much data`);
+    return fail("The link didn't return a readable calendar", 'linkUnreadable');
+  }
+  const icsText = new TextDecoder('utf-8').decode(bytes);
+
+  // A login page or an HTML 200 from a portal is the usual wrong paste; the
+  // parser would quietly find no components in it, so require the calendar
+  // envelope before parsing.
+  if (!/^\s*BEGIN:VCALENDAR/im.test(icsText)) {
+    log.warn(`Source "${source.name}" (${source.id}) did not return a calendar document`);
+    return fail("The link didn't return a readable calendar", 'linkUnreadable');
+  }
+
+  // Parse and process ICS — wrapped in try/catch so a malformed feed
+  // is logged and treated as a failing source
+  try {
+    const parsedEvents = parseICSEvents(icsText, source, from, to);
+    return { events: parsedEvents, results: [{ id: source.id, name: source.name, ok: true }] };
+  } catch (err) {
+    log.warn(`Parse failed for source "${source.name}" (${source.id})`, err);
+    return fail("The link didn't return a readable calendar", 'linkUnreadable');
+  }
+}
+
+/**
+ * Fetch and parse ICS/iCal feeds, returning events in the same CalendarEvent
+ * format as Google Calendar plus a per-source outcome. Handles recurring
+ * events, all-day events, and partial failures across multiple sources —
+ * a broken feed becomes a `results` entry with plain-language wording, never
+ * a rejection that takes the other feeds down.
+ */
+export async function fetchICalEvents(
+  sources: ICalSource[],
+  timeMin: string,
+  timeMax: string,
+): Promise<{ events: CalendarEvent[]; results: SourceFetchResult[] }> {
+  const from = new Date(timeMin);
+  const to = new Date(timeMax);
+
+  const { events, results } = await settleSourceFetches(
+    sources,
+    (source) => fetchICalSource(source, from, to),
+    (source, reason) => {
+      // Unexpected rejections (e.g. fetchWithTimeout network errors)
+      log.warn('Source fetch rejected', reason);
+      return [{ id: source.id, name: source.name, ok: false, error: 'Could not reach the link', messageKey: 'linkUnreachable' }];
+    },
+  );
+
+  events.sort((a, b) => compareEventStarts(a.start, b.start));
+  return { events, results };
+}
+
+/** Outcome of probing a feed link before it is saved. */
+export type ICalCheckResult =
+  | { ok: true; eventCount: number }
+  | { ok: false; error: string; messageKey: string; messageParams?: Record<string, string | number> };
+
+/**
+ * Probe a feed link the way the display will fetch it, before the editor
+ * saves it: same URL rules, same HTTP fetch, same parser. Counts the events
+ * in the coming year so the editor can tell an empty calendar from a broken
+ * link. Never rejects.
+ *
+ * `homeNetwork` is the same opt-in the saved source carries, so the form can
+ * check a home-network calendar before it is saved. Without it the check is
+ * held to the strict rule and cannot be used to poke around the network.
+ */
+export async function checkICalUrl(
+  url: string,
+  options: { homeNetwork?: boolean } = {},
+): Promise<ICalCheckResult> {
+  const from = new Date();
+  const to = new Date(from);
+  to.setFullYear(to.getFullYear() + 1);
+  const probe: ICalSource = {
+    id: 'check',
+    type: 'ical',
+    name: 'check',
+    url,
+    color: '',
+    enabled: true,
+    homeNetwork: options.homeNetwork === true,
+  };
+  try {
+    const { events, results } = await fetchICalSource(probe, from, to);
+    const result = results[0];
+    if (result?.ok) return { ok: true, eventCount: events.length };
+    return {
+      ok: false,
+      error: result?.error ?? 'Could not reach the link',
+      messageKey: result?.messageKey ?? 'linkUnreachable',
+      ...(result?.messageParams ? { messageParams: result.messageParams } : {}),
+    };
+  } catch (err) {
+    log.warn('Feed check failed', err);
+    return { ok: false, error: 'Could not reach the link', messageKey: 'linkUnreachable' };
+  }
+}
+
+/** Compute a fallback end date when DTEND is missing. */
+function computeFallbackEnd(start: Date, isAllDay: boolean): Date {
+  if (isAllDay) {
+    // RFC 5545: all-day event with no DTEND defaults to 1 day
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    return end;
+  }
+  // Timed event with no DTEND — treat as instant (end = start)
+  return start;
+}
+
+/** Convert a VEvent (or instance) into our CalendarEvent format. */
+function instanceToCalendarEvent(
+  vevent: VEvent,
+  start: Date,
+  end: Date,
+  isAllDay: boolean,
+  source: EventSourceMeta,
+): CalendarEvent | null {
+  const uid = vevent.uid ?? '';
+  const occurrenceKey = isAllDay ? toDateString(start) : start.toISOString();
+
+  return {
+    id: `${source.id}:${uid}:${occurrenceKey}`,
+    title: paramValue(vevent.summary) || '(No title)',
+    start: isAllDay ? toDateString(start) : start.toISOString(),
+    end: isAllDay ? toDateString(end) : end.toISOString(),
+    location: paramValue(vevent.location) || undefined,
+    description: paramValue(vevent.description) || undefined,
+    allDay: isAllDay,
+    calendarColor: source.color,
+    sourceId: source.id,
+    sourceName: source.name,
+  };
+}

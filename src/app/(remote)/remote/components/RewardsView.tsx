@@ -1,0 +1,825 @@
+'use client';
+
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Plus, Minus } from 'lucide-react';
+import type { ChoreMember } from '@/types/config';
+import type { RewardDefinition, RewardRedemption } from '@/lib/reward-data';
+import ChoreIcon from '@/components/modules/chore-chart/ChoreIcon';
+import { editorFetch, isSessionExpired } from '@/lib/editor-fetch';
+import { useTranslate } from '@/i18n';
+import ConfirmSheet from './ConfirmSheet';
+import RewardFormOverlay from './RewardFormOverlay';
+import { formatTimeAgoLocalized } from '@/lib/chore-constants';
+
+// ── Types ────────────────────────────────────────────────────────────
+
+interface RewardsData {
+  rewards: RewardDefinition[];
+  balances: Record<string, number>;
+  redemptions: RewardRedemption[];
+}
+
+interface RewardsViewProps {
+  members: ChoreMember[];
+  accentColor: string;
+  isAdmin?: boolean;
+  /**
+   * Owned by ChoresTab and shared with the Today view, so the kid who just
+   * checked off their chores is the kid whose tickets show here. In the kid
+   * view this is also the only way to pick whose tickets get spent: Redeem
+   * shows no member picker of its own.
+   */
+  selectedMemberId: string;
+  onSelectMember: (id: string) => void;
+}
+
+type InnerView = 'redeem' | 'rewards' | 'balances' | 'history';
+
+// ── Component ────────────────────────────────────────────────────────
+
+export default function RewardsView({
+  members,
+  accentColor,
+  isAdmin = false,
+  selectedMemberId,
+  onSelectMember,
+}: RewardsViewProps) {
+  const t = useTranslate('remote');
+  const [data, setData] = useState<RewardsData | null>(null);
+  const [innerView, setInnerView] = useState<InnerView>('redeem');
+  const [editingReward, setEditingReward] = useState<RewardDefinition | 'new' | null>(null);
+  const [redeemTarget, setRedeemTarget] = useState<{ reward: RewardDefinition; memberId: string } | null>(null);
+  const [adjusting, setAdjusting] = useState<Set<string>>(new Set());
+  const [saveError, setSaveError] = useState(false);
+
+  // ── Fetch ──
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await editorFetch('/api/rewards');
+      if (!res.ok) return;
+      const json = await res.json();
+      setData(json);
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 15_000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  // ── Derived ──
+  const selectedMember = members.find((m) => m.id === selectedMemberId);
+  const selectedColor = selectedMember?.color ?? accentColor;
+  const balance = data?.balances[selectedMemberId] ?? 0;
+
+  const availableRewards = useMemo(() => {
+    if (!data) return [];
+    return data.rewards
+      .filter((r) => r.enabled)
+      .filter((r) => r.memberIds.length === 0 || r.memberIds.includes(selectedMemberId));
+  }, [data, selectedMemberId]);
+
+  const sortedRedemptions = useMemo(() => {
+    if (!data) return [];
+    return [...data.redemptions].sort(
+      (a, b) => new Date(b.redeemedAt).getTime() - new Date(a.redeemedAt).getTime(),
+    );
+  }, [data]);
+
+  // Map memberId → color for history dots
+  const memberColorMap = useMemo(
+    () => new Map(members.map((m) => [m.id, m.color])),
+    [members],
+  );
+
+  // ── Handlers ──
+  const handleRedeem = async () => {
+    if (!redeemTarget) return;
+    try {
+      const res = await editorFetch('/api/rewards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rewardId: redeemTarget.reward.id, memberId: redeemTarget.memberId }),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        setData((prev) => prev ? { ...prev, balances: result.balances, redemptions: result.redemptions } : prev);
+      } else {
+        // Balance may have changed — refresh so the user sees the real state
+        await fetchData();
+      }
+    } catch {
+      await fetchData();
+    }
+    setRedeemTarget(null);
+  };
+
+  /**
+   * Persist a rewards list, rolling back to `snapshot` if the write fails.
+   *
+   * `editorFetch` resolves for every status except 401, so omitting the
+   * `res.ok` check treated a 500 as success: a saved reward vanished on
+   * reload, and a deleted one came back. These are surfaces children use, so
+   * phantom state here is the worst place for it.
+   *
+   * `force` is for deletes: the hub refuses an empty list (409) as a guard
+   * against a buggy client wiping the data, but deleting the only reward is
+   * exactly that list and the person just confirmed it. After a failure the
+   * real state is fetched back so the page never shows a phantom.
+   */
+  const persistRewards = async (updated: RewardDefinition[], snapshot: RewardsData | null, force = false) => {
+    setSaveError(false);
+    try {
+      const res = await editorFetch('/api/rewards/data', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rewards: updated, ...(force ? { force: true } : {}) }),
+      });
+      if (!res.ok) {
+        setData(snapshot);
+        setSaveError(true);
+        await fetchData();
+      }
+    } catch (err) {
+      if (isSessionExpired(err)) return;
+      setData(snapshot);
+      setSaveError(true);
+      await fetchData();
+    }
+  };
+
+  const handleSaveReward = async (reward: RewardDefinition) => {
+    const snapshot = data;
+    const existing = data?.rewards ?? [];
+    const updated = editingReward === 'new'
+      ? [...existing, reward]
+      : existing.map((r) => (r.id === reward.id ? reward : r));
+    setData((prev) => ({ rewards: updated, balances: prev?.balances ?? {}, redemptions: prev?.redemptions ?? [] }));
+    setEditingReward(null);
+    await persistRewards(updated, snapshot);
+  };
+
+  const handleDeleteReward = async (id: string) => {
+    const snapshot = data;
+    const updated = (data?.rewards ?? []).filter((r) => r.id !== id);
+    setData((prev) => ({ rewards: updated, balances: prev?.balances ?? {}, redemptions: prev?.redemptions ?? [] }));
+    setEditingReward(null);
+    await persistRewards(updated, snapshot, true);
+  };
+
+  const handleAdjust = async (memberId: string, amount: number) => {
+    if (adjusting.has(memberId)) return;
+    setAdjusting((prev) => new Set(prev).add(memberId));
+    const snapshot = data;
+    // Optimistic
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        balances: {
+          ...prev.balances,
+          [memberId]: Math.max(0, (prev.balances[memberId] ?? 0) + amount),
+        },
+      };
+    });
+    try {
+      const res = await editorFetch('/api/rewards/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId, amount }),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        setData((prev) => prev ? { ...prev, balances: result.balances } : prev);
+      } else {
+        setData(snapshot);
+      }
+    } catch {
+      setData(snapshot);
+    }
+    setAdjusting((prev) => {
+      const next = new Set(prev);
+      next.delete(memberId);
+      return next;
+    });
+  };
+
+  // ── Inner nav colors ──
+  const viewColors: Record<InnerView, string> = {
+    redeem: selectedColor,
+    rewards: '#f59e0b',
+    balances: '#4ade80',
+    history: '#a78bfa',
+  };
+
+  const navLabels: Record<InnerView, string> = {
+    redeem: t('rewardsView.nav.redeem'),
+    rewards: t('rewardsView.nav.rewards'),
+    balances: t('rewardsView.nav.balances'),
+    history: t('rewardsView.nav.history'),
+  };
+
+  // ── Render ──
+  return (
+    <div>
+      {saveError && (
+        <div
+          role="alert"
+          style={{
+            marginBottom: 12,
+            padding: '8px 12px',
+            borderRadius: 8,
+            background: 'color-mix(in srgb, var(--hs-danger) 10%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--hs-danger) 30%, transparent)',
+            color: 'var(--hs-danger)',
+            fontSize: 12,
+          }}
+        >
+          {t('rewardsView.saveFailed')}
+        </div>
+      )}
+
+      {/* Inner toggle: Redeem / Manage / History */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 14, padding: '0 2px' }}>
+        {(isAdmin ? ['redeem', 'rewards', 'balances', 'history'] as InnerView[] : ['redeem', 'history'] as InnerView[]).map((v) => (
+          <button
+            key={v}
+            onClick={() => setInnerView(v)}
+            style={{
+              fontSize: 13,
+              fontWeight: innerView === v ? 600 : 500,
+              color: innerView === v ? viewColors[v] : 'var(--hs-text-faint)',
+              // The underline sits under a 17px word; the padding is what makes
+              // the tab a thumb-sized target without a taller-looking tab bar.
+              minHeight: 44,
+              paddingTop: 10,
+              paddingBottom: 8,
+              cursor: 'pointer',
+              background: 'none',
+              borderTop: 'none',
+              borderLeft: 'none',
+              borderRight: 'none',
+              borderBottomStyle: 'solid',
+              borderBottomWidth: 2,
+              borderBottomColor: innerView === v ? viewColors[v] : 'transparent',
+              transition: 'all 0.15s',
+            }}
+          >
+            {navLabels[v]}
+          </button>
+        ))}
+      </div>
+
+      {innerView === 'redeem' && (
+        <RedeemSection
+          t={t}
+          members={members}
+          selectedMemberId={selectedMemberId}
+          onSelectMember={onSelectMember}
+          showMemberPicker={isAdmin}
+          balance={balance}
+          selectedColor={selectedColor}
+          rewards={availableRewards}
+          onRedeem={(reward) => setRedeemTarget({ reward, memberId: selectedMemberId })}
+        />
+      )}
+
+      {innerView === 'rewards' && (
+        <RewardsManageSection
+          t={t}
+          data={data}
+          onEditReward={setEditingReward}
+        />
+      )}
+
+      {innerView === 'balances' && (
+        <BalancesSection
+          t={t}
+          data={data}
+          members={members}
+          onAdjust={handleAdjust}
+        />
+      )}
+
+      {innerView === 'history' && (
+        <HistorySection
+          t={t}
+          redemptions={sortedRedemptions}
+          memberColorMap={memberColorMap}
+        />
+      )}
+
+      {redeemTarget && (() => {
+        const cost = redeemTarget.reward.cost;
+        const remaining = Math.max(0, balance - cost);
+        const remainingTickets = remaining === 1
+          ? t('rewardsView.ticketCountSingular', { n: remaining })
+          : t('rewardsView.ticketCountPlural', { n: remaining });
+        const memberName = selectedMember?.name ?? t('rewardsView.redeem.memberFallback');
+        const description = cost === 1
+          ? t('rewardsView.redeem.confirmDescriptionSingular', { cost, memberName, remaining: remainingTickets })
+          : t('rewardsView.redeem.confirmDescriptionPlural', { cost, memberName, remaining: remainingTickets });
+        const confirmLabel = cost === 1
+          ? t('rewardsView.redeem.confirmLabelSingular', { cost })
+          : t('rewardsView.redeem.confirmLabelPlural', { cost });
+        return (
+          <ConfirmSheet
+            icon={
+              <div style={{ width: 56, height: 56, borderRadius: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: `color-mix(in srgb, ${selectedColor} 12%, transparent)` }}>
+                <ChoreIcon value={redeemTarget.reward.emoji} size={28} color={selectedColor} />
+              </div>
+            }
+            title={t('rewardsView.redeem.confirmTitle', { name: redeemTarget.reward.name })}
+            description={description}
+            confirmLabel={confirmLabel}
+            confirmColor={selectedColor}
+            onConfirm={handleRedeem}
+            onCancel={() => setRedeemTarget(null)}
+          />
+        );
+      })()}
+
+      {editingReward !== null && (
+        <RewardFormOverlay
+          reward={editingReward === 'new' ? null : editingReward}
+          members={members}
+          onSave={handleSaveReward}
+          onDelete={editingReward !== 'new' ? handleDeleteReward : undefined}
+          onBack={() => setEditingReward(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Redeem Section ───────────────────────────────────────────────────
+
+function RedeemSection({
+  t,
+  members,
+  selectedMemberId,
+  onSelectMember,
+  showMemberPicker,
+  balance,
+  selectedColor,
+  rewards,
+  onRedeem,
+}: {
+  t: ReturnType<typeof useTranslate>;
+  members: ChoreMember[];
+  selectedMemberId: string;
+  onSelectMember: (id: string) => void;
+  /** Grown-ups pick any member here; kids spend only as the member picked on Today. */
+  showMemberPicker: boolean;
+  balance: number;
+  selectedColor: string;
+  rewards: RewardDefinition[];
+  onRedeem: (reward: RewardDefinition) => void;
+}) {
+  const selectedMember = members.find((m) => m.id === selectedMemberId);
+  return (
+    <>
+      {showMemberPicker && (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '12px 0' }}>
+        {members.map((member) => {
+          const isActive = member.id === selectedMemberId;
+          return (
+            <button
+              key={member.id}
+              className="press-scale"
+              onClick={() => onSelectMember(member.id)}
+              aria-pressed={isActive}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 14px',
+                minHeight: 44,
+                borderRadius: 999,
+                border: `2px solid ${isActive ? member.color : 'transparent'}`,
+                background: isActive ? `color-mix(in srgb, ${member.color} 15%, transparent)` : 'var(--hs-bg-card)',
+                color: isActive ? member.color : 'var(--hs-text-muted)',
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: 'pointer',
+                flexShrink: 0,
+                maxWidth: '100%',
+                transition: 'all 0.15s',
+              }}
+            >
+              {member.emoji ? (
+                <span style={{ flexShrink: 0, display: 'inline-flex' }}>
+                  <ChoreIcon value={member.emoji} size={18} color={isActive ? member.color : 'var(--hs-text-muted)'} />
+                </span>
+              ) : (
+                <span style={{ fontSize: 16, fontWeight: 600, flexShrink: 0 }}>{member.name[0]}</span>
+              )}
+              <span style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{member.name}</span>
+            </button>
+          );
+        })}
+      </div>
+      )}
+
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: 20,
+          background: 'var(--hs-bg-card)',
+          borderRadius: 16,
+          marginBottom: 16,
+          border: '1px solid var(--hs-bg-hover)',
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1, color: selectedColor }}>
+            {balance}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--hs-text-faint)', fontWeight: 500, marginTop: 4 }}>
+            {showMemberPicker || !selectedMember
+              ? t('rewardsView.redeem.balanceLabel')
+              : t('rewardsView.redeem.balanceLabelNamed', { name: selectedMember.name })}
+          </div>
+        </div>
+        <div
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 14,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 24,
+            background: `color-mix(in srgb, ${selectedColor} 12%, transparent)`,
+          }}
+        >
+          🎟️
+        </div>
+      </div>
+
+      {!showMemberPicker && selectedMember && (
+        <p style={{ fontSize: 12, color: 'var(--hs-text-faint)', margin: '-6px 2px 14px', lineHeight: 1.4 }}>
+          {t('rewardsView.redeem.switchHint', { name: selectedMember.name })}
+        </p>
+      )}
+
+      <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.08em', color: 'var(--hs-text-faint)', padding: '8px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ fontSize: 14 }}>🎟️</span>
+        {t('rewardsView.redeem.availableHeading')}
+      </div>
+
+      {rewards.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--hs-text-faint)', fontSize: 14 }}>
+          {t(showMemberPicker ? 'rewardsView.redeem.empty' : 'rewardsView.redeem.emptyKid')}
+        </div>
+      )}
+
+      {rewards.map((reward) => {
+        const canAfford = balance >= reward.cost;
+        return (
+          <button
+            key={reward.id}
+            className="press-scale"
+            onClick={() => canAfford && onRedeem(reward)}
+            disabled={!canAfford}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '14px 16px',
+              background: 'var(--hs-bg-hover)',
+              borderRadius: 12,
+              marginBottom: 6,
+              border: 'none',
+              width: '100%',
+              textAlign: 'left' as const,
+              cursor: canAfford ? 'pointer' : 'not-allowed',
+              opacity: canAfford ? 1 : 0.7,
+              transition: 'all 0.15s',
+              color: 'inherit',
+            }}
+          >
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                background: `color-mix(in srgb, ${selectedColor} 12%, transparent)`,
+              }}
+            >
+              <ChoreIcon value={reward.emoji} size={20} color={selectedColor} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--hs-text-body)' }}>{reward.name}</div>
+              {reward.description && (
+                <div style={{ fontSize: 12, color: 'var(--hs-text-faint)', marginTop: 1 }}>{reward.description}</div>
+              )}
+            </div>
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 700,
+                padding: '6px 14px',
+                borderRadius: 999,
+                flexShrink: 0,
+                whiteSpace: 'nowrap' as const,
+                background: canAfford ? `color-mix(in srgb, ${selectedColor} 15%, transparent)` : 'var(--hs-bg-hover)',
+                color: canAfford ? selectedColor : 'var(--hs-text-muted)',
+              }}
+            >
+              {reward.cost === 1
+                ? t('rewardsView.ticketCountSingular', { n: reward.cost })
+                : t('rewardsView.ticketCountPlural', { n: reward.cost })}
+            </div>
+          </button>
+        );
+      })}
+    </>
+  );
+}
+
+// ── Manage Section ───────────────────────────────────────────────────
+
+function RewardsManageSection({
+  t,
+  data,
+  onEditReward,
+}: {
+  t: ReturnType<typeof useTranslate>;
+  data: RewardsData | null;
+  onEditReward: (reward: RewardDefinition | 'new') => void;
+}) {
+  const rewards = data?.rewards ?? [];
+
+  return (
+    <>
+      <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.08em', color: 'var(--hs-text-faint)', padding: '8px 0', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+        <ChoreIcon value="lucide:gem" bare size={14} color="#a78bfa" />
+        {t('rewardsView.manage.heading')}
+        <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--hs-border-strong)', fontWeight: 500, textTransform: 'none' as const, letterSpacing: 0 }}>
+          {rewards.length === 1
+            ? t('rewardsView.manage.countSingular', { n: rewards.length })
+            : t('rewardsView.manage.countPlural', { n: rewards.length })}
+        </span>
+      </div>
+
+      {rewards.map((reward) => (
+        <button
+          key={reward.id}
+          className="press-scale"
+          onClick={() => onEditReward(reward)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '14px 16px',
+            background: 'var(--hs-bg-card)',
+            borderRadius: 12,
+            marginBottom: 6,
+            cursor: 'pointer',
+            width: '100%',
+            border: 'none',
+            textAlign: 'left' as const,
+            opacity: reward.enabled ? 1 : 0.4,
+            color: 'inherit',
+            transition: 'all 0.15s',
+          }}
+        >
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: 'var(--hs-bg-hover)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <ChoreIcon value={reward.emoji} size={18} color="var(--hs-text-muted)" />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--hs-text-body)' }}>{reward.name}</div>
+            <div style={{ fontSize: 12, color: 'var(--hs-text-faint)', marginTop: 1 }}>
+              {reward.cost === 1
+                ? t('rewardsView.ticketCountSingular', { n: reward.cost })
+                : t('rewardsView.ticketCountPlural', { n: reward.cost })}
+              {' · '}
+              {reward.memberIds.length === 0
+                ? t('rewardsView.manage.everyone')
+                : reward.enabled
+                  ? (reward.memberIds.length === 1
+                      ? t('rewardsView.manage.memberCountSingular', { n: reward.memberIds.length })
+                      : t('rewardsView.manage.memberCountPlural', { n: reward.memberIds.length }))
+                  : t('rewardsView.manage.disabled')}
+            </div>
+          </div>
+          <div style={{ color: 'var(--hs-border-strong)', fontSize: 18 }}>›</div>
+        </button>
+      ))}
+
+      <button
+        className="press-scale"
+        onClick={() => onEditReward('new')}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          padding: '14px 16px',
+          minHeight: 48,
+          borderRadius: 12,
+          border: '2px dashed var(--hs-border)',
+          background: 'transparent',
+          color: 'var(--hs-text-faint)',
+          fontSize: 14,
+          fontWeight: 500,
+          cursor: 'pointer',
+          width: '100%',
+          marginTop: 4,
+        }}
+      >
+        <Plus size={18} /> {t('rewardsView.manage.addButton')}
+      </button>
+    </>
+  );
+}
+
+// ── Balances Section ─────────────────────────────────────────────────
+
+function BalancesSection({
+  t,
+  data,
+  members,
+  onAdjust,
+}: {
+  t: ReturnType<typeof useTranslate>;
+  data: RewardsData | null;
+  members: ChoreMember[];
+  onAdjust: (memberId: string, amount: number) => void;
+}) {
+  return (
+    <>
+      <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.08em', color: 'var(--hs-text-faint)', padding: '8px 0', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+        <ChoreIcon value="lucide:gem" bare size={14} color="#a78bfa" />
+        {t('rewardsView.balances.heading')}
+      </div>
+
+      {members.map((member) => (
+        <div
+          key={member.id}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '10px 16px',
+            background: 'var(--hs-bg-card)',
+            borderRadius: 12,
+            marginBottom: 6,
+          }}
+        >
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              background: member.color,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 12,
+              color: 'white',
+              flexShrink: 0,
+              fontWeight: 700,
+            }}
+          >
+            {member.name[0]}
+          </div>
+          <div style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--hs-text-body)' }}>
+            {member.name}
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--hs-text-muted)', marginRight: 8 }}>
+            {(() => {
+              const n = data?.balances[member.id] ?? 0;
+              return n === 1
+                ? t('rewardsView.ticketCountSingular', { n })
+                : t('rewardsView.ticketCountPlural', { n });
+            })()}
+          </div>
+          {/* Minus and plus sit a finger-width apart: side by side at 32px they
+              were one mis-tap away from taking a ticket instead of giving one. */}
+          <button
+            className="press-scale-xs"
+            onClick={() => onAdjust(member.id, -1)}
+            aria-label={t('rewardsView.balances.adjustDownAriaLabel', { name: member.name })}
+            style={{
+              width: 40,
+              height: 40,
+              marginRight: 8,
+              borderRadius: 10,
+              border: '1px solid var(--hs-border)',
+              background: 'var(--hs-bg-panel)',
+              color: 'var(--hs-text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Minus size={16} />
+          </button>
+          <button
+            className="press-scale-xs"
+            onClick={() => onAdjust(member.id, 1)}
+            aria-label={t('rewardsView.balances.adjustUpAriaLabel', { name: member.name })}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              border: '1px solid var(--hs-border)',
+              background: 'var(--hs-bg-panel)',
+              color: 'var(--hs-text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+      ))}
+    </>
+  );
+}
+
+// ── History Section ──────────────────────────────────────────────────
+
+function HistorySection({
+  t,
+  redemptions,
+  memberColorMap,
+}: {
+  t: ReturnType<typeof useTranslate>;
+  redemptions: RewardRedemption[];
+  memberColorMap: Map<string, string>;
+}) {
+  const tCore = useTranslate('core');
+  return (
+    <>
+      <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.08em', color: 'var(--hs-text-faint)', padding: '8px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ fontSize: 14 }}>📜</span>
+        {t('rewardsView.history.heading')}
+      </div>
+
+      {redemptions.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--hs-text-faint)', fontSize: 14 }}>
+          {t('rewardsView.history.empty')}
+        </div>
+      )}
+
+      {redemptions.map((r) => (
+        <div
+          key={r.id}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '10px 0',
+            borderBottom: '1px solid var(--hs-bg-card)',
+            fontSize: 13,
+          }}
+        >
+          <div
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: memberColorMap.get(r.memberId) ?? 'var(--hs-text-faint)',
+              flexShrink: 0,
+            }}
+          />
+          <div style={{ flex: 1, color: 'var(--hs-text-muted)' }}>
+            <strong style={{ color: 'var(--hs-text-body)', fontWeight: 500 }}>{r.memberName}</strong>
+            {t('rewardsView.history.entry.beforeReward')}
+            <strong style={{ color: 'var(--hs-text-body)', fontWeight: 500 }}>{r.rewardName}</strong>
+            {r.cost === 1
+              ? t('rewardsView.history.entry.afterRewardSingular', { n: r.cost })
+              : t('rewardsView.history.entry.afterRewardPlural', { n: r.cost })}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--hs-text-faint)', flexShrink: 0 }}>
+            {formatTimeAgoLocalized(r.redeemedAt, tCore)}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}

@@ -1,0 +1,136 @@
+{
+  "_type": "home-screens-layout",
+  "_version": 1,
+  "metadata": {
+    "name": "Info Board",
+    "description": "An information-rich board with news, stocks, word of the day, historical facts, and quotes",
+    "exportedAt": "2026-01-01T00:00:00.000Z",
+    "configVersion": 10,
+    "sourceDisplay": { "width": 1080, "height": 1920 },
+    "screenCount": 1,
+    "moduleCount": 5
+  },
+  "visual": {
+    "rotationIntervalMs": 30000,
+    "transitionEffect": "fade",
+    "transitionDuration": 0.6
+  },
+  "screens": [
+    {
+      "id": "tpl-info-s1",
+      "name": "Info Board",
+      "backgroundImage": "",
+      "modules": [
+        {
+          "id": "tpl-info-m1",
+          "type": "news",
+          "position": { "x": 20, "y": 20 },
+          "size": { "w": 1040, "h": 740 },
+          "zIndex": 1,
+          "config": {
+            "feeds": [
+              { "id": "tpl-info-m1-feed-1", "url": "https://feeds.bbci.co.uk/news/rss.xml", "label": "BBC News" }
+            ],
+            "view": "list",
+            "refreshIntervalMs": 300000,
+            "rotateIntervalMs": 8000,
+            "maxItems": 10,
+            "showTimestamp": true,
+            "showDescription": true
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-info-m2",
+          "type": "stock-ticker",
+          "position": { "x": 20, "y": 780 },
+          "size": { "w": 1040, "h": 300 },
+          "zIndex": 1,
+          "config": {
+            "symbols": "AAPL,GOOGL,MSFT,AMZN,TSLA",
+            "refreshIntervalMs": 300000,
+            "view": "cards"
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-info-m3",
+          "type": "word-of-day",
+          "position": { "x": 20, "y": 1100 },
+          "size": { "w": 1040, "h": 240 },
+          "zIndex": 1,
+          "config": {},
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-info-m4",
+          "type": "history",
+          "position": { "x": 20, "y": 1360 },
+          "size": { "w": 510, "h": 540 },
+          "zIndex": 1,
+          "config": {
+            "refreshIntervalMs": 3600000,
+            "rotationIntervalMs": 10000
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-info-m5",
+          "type": "quote",
+          "position": { "x": 550, "y": 1360 },
+          "size": { "w": 510, "h": 540 },
+          "zIndex": 1,
+          "config": {
+            "refreshIntervalMs": 3600000
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        }
+      ]
+    }
+  ]
+}

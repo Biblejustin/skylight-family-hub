@@ -1,0 +1,284 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import Slider from '@/components/ui/Slider';
+import Toggle from '@/components/ui/Toggle';
+import Button from '@/components/ui/Button';
+import LabeledSelect from '@/components/ui/LabeledSelect';
+import FullscreenThemeSelect from './FullscreenThemeSelect';
+import { editorFetch } from '@/lib/editor-fetch';
+import { useSecretStatus } from '@/hooks/useSecretStatus';
+import { useModuleConfig } from '@/hooks/useModuleConfig';
+import ImageBrowserModal from '@/components/editor/ImageBrowserModal';
+import { ImmichPhotoSourceSection } from './ImmichPhotoSourceSection';
+import { OneDrivePhotoSourceSection } from './OneDrivePhotoSourceSection';
+import { ICloudAlbumSourceSection } from './ICloudAlbumSourceSection';
+import { GooglePhotosImportSection } from './GooglePhotosImportSection';
+import { MediaTypesFields } from './MediaTypesFields';
+import { useTranslate } from '@/i18n';
+import type { ModuleInstance, FullscreenPhotoConfig, FullscreenPhotoTransition } from '@/types/config';
+import PhoneSurfaceLinks from '@/components/editor/PhoneSurfaceLinks';
+
+type Config = Partial<FullscreenPhotoConfig>;
+type PhotoSource = NonNullable<FullscreenPhotoConfig['source']>;
+
+export function FullscreenPhotoConfigSection({ mod, screenId }: { mod: ModuleInstance; screenId: string }) {
+  const t = useTranslate('editor');
+
+  const MODE_OPTIONS = [
+    { value: 'slideshow', label: t('configSections.fullscreen-photo.modeSlideshow') },
+    { value: 'single', label: t('configSections.fullscreen-photo.modeSingle') },
+  ] as const;
+
+  const TRANSITION_OPTIONS: { value: FullscreenPhotoTransition; label: string }[] = [
+    { value: 'fade', label: t('configSections.fullscreen-photo.transitionFade') },
+    { value: 'slide', label: t('configSections.fullscreen-photo.transitionSlide') },
+    { value: 'zoom', label: t('configSections.fullscreen-photo.transitionZoom') },
+    { value: 'none', label: t('configSections.fullscreen-photo.transitionNone') },
+  ];
+
+  const OBJECT_FIT_OPTIONS: { value: 'cover' | 'contain' | 'fill'; label: string }[] = [
+    { value: 'cover', label: t('common.objectFitCover') },
+    { value: 'contain', label: t('common.objectFitContain') },
+    { value: 'fill', label: t('common.objectFitFill') },
+  ];
+
+  const { config: c, set } = useModuleConfig<Config>(mod, screenId);
+  const [showBrowser, setShowBrowser] = useState(false);
+  const [showPhotoPicker, setShowPhotoPicker] = useState(false);
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [photoCount, setPhotoCount] = useState(0);
+  const { status: secrets } = useSecretStatus();
+  const hasImmichKey = !!secrets.immich_api_key && !!secrets.immich_url;
+  const hasOneDrive = !!secrets.microsoft_client_id;
+
+  // iCloud needs no key, so the source select is always shown; Immich joins
+  // the list only once its server + API key are configured.
+  const SOURCE_OPTIONS: { value: PhotoSource; label: string }[] = [
+    { value: 'local', label: t('configSections.fullscreen-photo.sourceLocal') },
+    ...(hasImmichKey ? [{ value: 'immich' as const, label: t('configSections.fullscreen-photo.sourceImmich') }] : []),
+    { value: 'icloud', label: t('configSections.fullscreen-photo.sourceICloud') },
+    ...(hasOneDrive ? [{ value: 'onedrive' as const, label: t('configSections.fullscreen-photo.sourceOneDrive') }] : []),
+  ];
+
+  const source: PhotoSource = c.source ?? 'local';
+  const directory = (c.directory as string) || '';
+  const isSinglePhoto = c.file !== undefined;
+
+  const fetchPreviews = useCallback(async (dir: string) => {
+    try {
+      const url = dir
+        ? `/api/backgrounds?directory=${encodeURIComponent(dir)}`
+        : '/api/backgrounds';
+      const res = await editorFetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        const images = Array.isArray(data) ? data : [];
+        setPhotoCount(images.length);
+        setPreviewImages(images.slice(0, 4));
+      }
+    } catch {
+      setPreviewImages([]);
+      setPhotoCount(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (source === 'local' && !isSinglePhoto) fetchPreviews(directory);
+  }, [directory, fetchPreviews, source, isSinglePhoto]);
+
+  return (
+    <>
+      {/* Theme Override */}
+      <FullscreenThemeSelect
+        value={c.theme}
+        onChange={(theme) => set({ theme })}
+        defaultOptionKey="configSections.fullscreen-photo.themeDefaultMidnight"
+      />
+
+      <LabeledSelect
+        label={t('configSections.fullscreen-photo.photoSource')}
+        value={source}
+        onChange={(v) => set({ source: v })}
+        options={SOURCE_OPTIONS}
+      />
+
+      {source === 'immich' ? (
+        <ImmichPhotoSourceSection config={c as Record<string, unknown>} set={set} />
+      ) : source === 'icloud' ? (
+        <ICloudAlbumSourceSection config={c as Record<string, unknown>} set={set} />
+      ) : source === 'onedrive' ? (
+        <OneDrivePhotoSourceSection config={c as Record<string, unknown>} set={set} />
+      ) : (
+        <>
+          {/* Mode toggle: Slideshow vs Single Photo */}
+          <LabeledSelect
+            label={t('configSections.fullscreen-photo.mode')}
+            value={isSinglePhoto ? 'single' : 'slideshow'}
+            onChange={(v) => {
+              if (v === 'single') {
+                set({ file: '', directory: '' });
+              } else {
+                set({ file: undefined });
+              }
+            }}
+            options={MODE_OPTIONS}
+          />
+
+          {isSinglePhoto ? (
+            /* Single photo picker */
+            <div>
+              <span className="text-xs text-hs-text-muted">{t('configSections.fullscreen-photo.photo')}</span>
+              <div className="flex gap-1.5 mt-1">
+                <div className="flex-1 px-2 py-1 text-xs bg-hs-card border border-hs-border-strong rounded text-hs-text-secondary truncate">
+                  {c.file ? c.file.replace(/.*[/\\]/, '').replace(/\.[^.]+$/, '') : t('configSections.fullscreen-photo.noneSelected')}
+                </div>
+                <Button size="sm" onClick={() => setShowPhotoPicker(true)}>
+                  {t('configSections.fullscreen-photo.choose')}
+                </Button>
+              </div>
+              {c.file && (
+                <div className="mt-1.5">
+                  <img
+                    src={c.file}
+                    alt=""
+                    loading="lazy"
+                    className="w-full max-h-32 rounded object-cover border border-hs-border-strong"
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Folder picker (existing slideshow UI) */
+            <div>
+              <span className="text-xs text-hs-text-muted">{t('configSections.fullscreen-photo.photoFolder')}</span>
+              <div className="flex gap-1.5 mt-1">
+                <div className="flex-1 px-2 py-1 text-xs bg-hs-card border border-hs-border-strong rounded text-hs-text-secondary truncate">
+                  {directory || t('configSections.fullscreen-photo.allPhotosRoot')}
+                </div>
+                <Button size="sm" onClick={() => setShowBrowser(true)}>
+                  {t('configSections.fullscreen-photo.browse')}
+                </Button>
+              </div>
+              {photoCount > 0 && (
+                <div className="mt-1.5">
+                  <span className="text-[10px] text-hs-text-faint">
+                    {photoCount === 1
+                      ? t('configSections.fullscreen-photo.photoCountSingular', { count: photoCount })
+                      : t('configSections.fullscreen-photo.photoCountPlural', { count: photoCount })}
+                  </span>
+                  <div className="flex gap-1 mt-1 overflow-x-auto">
+                    {previewImages.map((img) => (
+                      <img
+                        key={img}
+                        src={img}
+                        alt=""
+                        loading="lazy"
+                        className="w-12 h-12 rounded object-cover flex-shrink-0 border border-hs-border-strong"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {photoCount === 0 && (
+                <p className="text-[10px] text-hs-text-faint mt-1">{t('configSections.fullscreen-photo.noPhotosInFolder')}</p>
+              )}
+            </div>
+          )}
+
+          {/* Google Photos → local library import (Picker API); slideshow
+              mode only, since a single-photo module picks one file. */}
+          {!isSinglePhoto && (
+            <GooglePhotosImportSection
+              onImported={(folder) => {
+                set({ directory: folder });
+                fetchPreviews(folder);
+              }}
+            />
+          )}
+        </>
+      )}
+
+      {/* Photos / videos mix — only for slideshow mode */}
+      {!isSinglePhoto && source !== 'onedrive' && (
+        <MediaTypesFields config={c as Record<string, unknown>} set={set} />
+      )}
+
+      {/* Slide interval — only for slideshow mode */}
+      {!isSinglePhoto && (
+        <Slider
+          label={t('configSections.fullscreen-photo.slideIntervalSeconds')}
+          value={(c.intervalMs ?? 30000) / 1000}
+          min={5}
+          max={300}
+          step={5}
+          onChange={(v) => set({ intervalMs: v * 1000 })}
+        />
+      )}
+
+      {/* Transition & Object Fit row */}
+      <div className="flex gap-2">
+        {!isSinglePhoto && (
+          <LabeledSelect
+            label={t('configSections.fullscreen-photo.transition')}
+            value={c.transition ?? 'fade'}
+            onChange={(v) => set({ transition: v })}
+            options={TRANSITION_OPTIONS}
+            fieldClassName="flex-1"
+          />
+        )}
+        <LabeledSelect
+          label={t('common.objectFit')}
+          value={c.objectFit ?? 'cover'}
+          onChange={(v) => set({ objectFit: v })}
+          options={OBJECT_FIT_OPTIONS}
+          fieldClassName="flex-1"
+        />
+      </div>
+
+      {/* Toggles */}
+      {!isSinglePhoto && (
+        <Toggle
+          label={t('configSections.fullscreen-photo.shuffleOrder')}
+          checked={c.shuffle ?? false}
+          onChange={(v) => set({ shuffle: v })}
+        />
+      )}
+      <Toggle
+        label={t('configSections.fullscreen-photo.kenBurnsEffect')}
+        checked={c.kenBurns ?? false}
+        onChange={(v) => set({ kenBurns: v })}
+      />
+      <Toggle
+        label={t('configSections.fullscreen-photo.showClockOverlay')}
+        checked={c.showClock ?? true}
+        onChange={(v) => set({ showClock: v })}
+      />
+
+      <PhoneSurfaceLinks context="photos" />
+
+      {showBrowser && (
+        <ImageBrowserModal
+          mode="manage-directory"
+          initialDirectory={directory}
+          onSelectDirectory={(dir) => {
+            set({ directory: dir });
+            fetchPreviews(dir);
+          }}
+          onClose={() => setShowBrowser(false)}
+        />
+      )}
+
+      {showPhotoPicker && (
+        <ImageBrowserModal
+          mode="pick-image"
+          initialDirectory={directory}
+          onSelectImage={(serveUrl) => {
+            set({ file: serveUrl });
+          }}
+          onClose={() => setShowPhotoPicker(false)}
+        />
+      )}
+    </>
+  );
+}

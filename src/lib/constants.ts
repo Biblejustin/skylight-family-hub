@@ -1,0 +1,216 @@
+// Default display dimensions (portrait 1080p)
+export const DEFAULT_DISPLAY_WIDTH = 1080;
+export const DEFAULT_DISPLAY_HEIGHT = 1920;
+
+// Orientation-agnostic resolution presets.
+// `short` is the smaller dimension, `long` is the larger.
+// Portrait: width = short, height = long.  Landscape: width = long, height = short.
+export const RESOLUTION_PRESETS = [
+  { label: '720p HD', short: 720, long: 1280 },
+  { label: '1080p Full HD', short: 1080, long: 1920 },
+  { label: '1440p QHD', short: 1440, long: 2560 },
+  { label: '4K UHD', short: 2160, long: 3840 },
+] as const;
+
+/** Derive the wlr-randr transform value from orientation + flip. */
+export function deriveDisplayTransform(
+  orientation: 'portrait' | 'landscape',
+  flipped: boolean,
+): 'normal' | '90' | '180' | '270' {
+  if (orientation === 'portrait') return flipped ? '270' : '90';
+  return flipped ? '180' : 'normal';
+}
+
+// Config file path
+export const CONFIG_FILE_PATH = 'data/config.json';
+
+// Backgrounds directory
+export const BACKGROUNDS_DIR = 'public/backgrounds';
+
+// Weather refresh interval (5 minutes)
+export const WEATHER_REFRESH_MS = 5 * 60 * 1000;
+
+// Calendar refresh interval (5 minutes)
+export const CALENDAR_REFRESH_MS = 5 * 60 * 1000;
+
+// How often the display recomputes the calendar shared-state keys
+// (calendar-state.ts) between fetches. "In 12 minutes" and "busy now" go
+// stale on the clock, not on new data, so this is a wall-clock tick rather
+// than a refetch. One minute matches the granularity the values are
+// published at; the store coalesces identical re-publishes, so a quiet
+// calendar costs nothing downstream.
+export const CALENDAR_STATE_REPUBLISH_MS = 60 * 1000;
+
+// Fallback for settings.calendar.daysAhead. The calendar API route and the
+// client-side fetch-window computation (getCalendarFetchWindow callers) must
+// agree on this value: clients omit timeMax from the URL whenever the default
+// window already covers their grids, assuming the server fills in the same
+// default.
+export const DEFAULT_CALENDAR_DAYS_AHEAD = 7;
+
+// Safety cap on the merged `/api/calendar` payload. Not a user setting: the
+// grids draw whatever their window holds, and list views trim themselves
+// (the calendar module's agenda has its own per-module `maxEvents`). This
+// only bounds a pathological feed so a Pi never parses a five-figure
+// payload; `budgetEvents` keeps the nearest upcoming rows when it trips.
+export const CALENDAR_FETCH_MAX_EVENTS = 2000;
+
+// How often the editor polls GET /api/display/shared-state while a condition
+// panel is open. That poll doubles as the "an editor is watching" signal, so
+// the hub's interest TTL below is derived from it rather than restated: the
+// two live in different files (a client hook and the server command store) and
+// drifted apart would silently degrade live shared-state values to the 30s
+// heartbeat with nothing erroring.
+export const SHARED_STATE_POLL_MS = 5_000;
+
+// Interest expires after three poll intervals, i.e. it survives two missed
+// polls. Derived, so raising the poll cadence cannot strand the flag.
+export const SHARED_STATE_INTEREST_TTL_MS = 3 * SHARED_STATE_POLL_MS;
+
+
+// Grid snap size (in display pixels)
+export const GRID_SIZE = 20;
+
+/**
+ * Narrowest viewport the drag-and-drop editor works at. Below it `/editor`
+ * shows the phone hand-off screen and `/` shows the launcher instead of
+ * redirecting to the editor.
+ */
+export const MIN_EDITOR_WIDTH = 768;
+
+export function snapToGrid(value: number): number {
+  return Math.round(value / GRID_SIZE) * GRID_SIZE;
+}
+
+// Default module sizes live on each entry in the module registry
+// (`src/lib/module-registry.ts`) — call `getModuleDefinition(type).defaultSize`.
+// Moved out of this file so there's one source of truth per module, and so
+// plugin-registered modules participate in the same lookup without an extra
+// carve-out.
+
+// Semantic text opacity tiers for consistent visual hierarchy across modules.
+// 5-tier system: primary → heading → secondary → dim → tertiary
+//   primary   (1.0)  — main content, large values, active elements
+//   heading   (0.8)  — section headings (restrained, not harsh white)
+//   secondary (0.6)  — labels, day names, descriptions
+//   dim       (0.45) — supplementary data (low temps, feels-like, percentages)
+//   tertiary  (0.35) — muted metadata, timestamps, decorative text
+export const TEXT_OPACITY = {
+  primary: 1,
+  heading: 0.8,
+  secondary: 0.6,
+  dim: 0.45,
+  tertiary: 0.35,
+} as const;
+
+/**
+ * The card's ink: the module's `Style > Text color`, as a CSS value.
+ *
+ * ModuleWrapper publishes it as `--module-ink`, so it is the card's colour
+ * even on an element that sets its own `color` (a badge in the accent, an
+ * event pill in the event's colour), where `currentcolor` would be that
+ * element's colour instead. The pixel gate caught exactly that: a badge whose
+ * background was 8% of its own faded text rather than 8% of the card's ink.
+ * Outside a card (fullscreen modules paint their own theme) it falls back to
+ * `currentcolor`, which is what those already inherit.
+ */
+export const INK = 'var(--module-ink, currentcolor)';
+
+/**
+ * The card's ink at an alpha.
+ *
+ * For every fill, rule, ring and placeholder that used to be a literal
+ * `rgba(255,255,255,x)` and so assumed a dark card (plan 50, item 19). The
+ * same idea as DIVIDER, for the alphas the tiers do not cover: at the
+ * default white text it resolves to exactly the old value, so nothing already
+ * on a wall changes, and on a light card with dark text the element darkens
+ * instead of disappearing. Ink painted on a coloured chip for contrast (a tick
+ * on a filled checkbox, digits on a flip clock's own dark flap) is not this
+ * and stays white on purpose, with a comment saying so.
+ *
+ * Not for gradient stops: a `color-mix()` stop is a non-legacy colour, which
+ * switches the whole gradient to oklab interpolation and moves every pixel
+ * of it. Those sites keep their literals, with a comment.
+ */
+export function ink(alpha: number): string {
+  // `in srgb`, not oklab like DIVIDER: mixing white through oklab lands a
+  // level off at anti-aliased edges, and the pixel gate caught exactly that
+  // on 40 shots. In srgb white at N% is rgba(255,255,255,N/100) to the bit.
+  // Lower-case keyword so the value survives a round trip through the DOM's
+  // style parser unchanged (jsdom lower-cases it), which is what the unit
+  // tests read back.
+  return `color-mix(in srgb, ${INK} ${Math.round(alpha * 100)}%, transparent)`;
+}
+
+// Divider/separator color tiers for consistent structural elements across modules.
+//   subtle  (0.05) — faint list grouping, barely-there separators
+//   default (0.08) — standard dividers and borders
+//   visible (0.10) — section separators within modules
+//   strong  (0.15) — emphasized borders, prominent separators
+//
+// Derived from `currentColor`, which is the module's own `style.textColor`, so
+// a card with dark text keeps its structure instead of losing every separator.
+// These were literal `rgba(255,255,255,x)` and silently assumed a dark
+// background: set a light card and the dividers vanished, while the text they
+// separate obeyed the setting. At the default white text these resolve to
+// exactly what they always were, so no card already on a wall changes.
+//
+// Built on `ink()` below since item 19 found two traps in the first version
+// (oklab mixing lands a level off at anti-aliased edges; `currentColor` on an
+// element that sets its own colour is that colour, not the card's). Same
+// values, now exact at white and anchored to the card's ink.
+export const DIVIDER = {
+  subtle: ink(0.05),
+  default: ink(0.08),
+  visible: ink(0.10),
+  strong: ink(0.15),
+} as const;
+
+/** Check whether a user-configured accent color is actually set (not the default black). */
+export function hasAccentColor(color: string | undefined): color is string {
+  return !!color && color !== '#000000';
+}
+
+/**
+ * Resolve accent color from a module config, returning the color, whether it's
+ * active, and a pre-built gradient background style for the common 135° pattern.
+ */
+export function resolveAccent(config: { accentColor?: string }): {
+  accentColor: string;
+  hasAccent: boolean;
+  gradientStyle: React.CSSProperties;
+} {
+  const accentColor = config.accentColor ?? '#000000';
+  const hasAccent = hasAccentColor(accentColor);
+  const gradientStyle: React.CSSProperties = hasAccent
+    ? { background: `linear-gradient(135deg, ${accentColor}15, ${accentColor}08)` }
+    : {};
+  return { accentColor, hasAccent, gradientStyle };
+}
+
+/**
+ * Past this many screens the display's pagination dots collapse to a
+ * "7 / 24" counter with arrows. Shared with the editor's dots guide.
+ */
+export const MAX_PAGINATION_DOTS = 10;
+/** Pagination dot geometry, in display pixels, shared by the kiosk's
+ *  PaginationDots and the editor's DotsGuide so a restyle cannot strand the
+ *  guide: dot diameter, finger target per dot, gap between targets, distance
+ *  of the row from the bottom edge, and the compact `‹ n / N ›` footprint. */
+export const PAGINATION_DOT_PX = 10;
+export const PAGINATION_HIT_PX = 44;
+export const PAGINATION_GAP_PX = 8;
+export const PAGINATION_BOTTOM_PX = 16;
+export const PAGINATION_COMPACT_W_PX = 158;
+/** The thin progress line under the active dot: width and height in display
+ *  pixels. Fills over the current screen's dwell (see PaginationDots). */
+export const PAGINATION_PROGRESS_W_PX = 200;
+export const PAGINATION_PROGRESS_H_PX = 3;
+
+/**
+ * Below this a news or weather screen can change before its data has
+ * finished loading, so the editor's per-screen duration field shows a warning
+ * under it. Advisory only: whatever is typed is saved and used. Sticky
+ * screens (0) are not durations and never warn.
+ */
+export const SHORT_SCREEN_DURATION_MS = 10_000;

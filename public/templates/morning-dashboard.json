@@ -1,0 +1,127 @@
+{
+  "_type": "home-screens-layout",
+  "_version": 1,
+  "metadata": {
+    "name": "Morning Dashboard",
+    "description": "Start your day with a personalized greeting, weather forecast, agenda, and commute info",
+    "exportedAt": "2026-01-01T00:00:00.000Z",
+    "configVersion": 10,
+    "sourceDisplay": { "width": 1080, "height": 1920 },
+    "screenCount": 1,
+    "moduleCount": 4
+  },
+  "visual": {
+    "rotationIntervalMs": 30000,
+    "transitionEffect": "fade",
+    "transitionDuration": 0.6
+  },
+  "screens": [
+    {
+      "id": "tpl-morning-s1",
+      "name": "Morning Dashboard",
+      "backgroundImage": "",
+      "modules": [
+        {
+          "id": "tpl-morning-m1",
+          "type": "greeting",
+          "position": { "x": 20, "y": 20 },
+          "size": { "w": 1040, "h": 160 },
+          "zIndex": 1,
+          "config": {
+            "name": ""
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-morning-m2",
+          "type": "weather",
+          "position": { "x": 20, "y": 200 },
+          "size": { "w": 1040, "h": 560 },
+          "zIndex": 1,
+          "config": {
+            "view": "combined",
+            "iconSet": "color",
+            "provider": "global",
+            "hoursToShow": 6,
+            "showFeelsLike": true,
+            "daysToShow": 3,
+            "showHighLow": true,
+            "showPrecipAmount": false,
+            "showPrecipitation": true,
+            "showHumidity": false,
+            "showWind": true,
+            "showPressure": false,
+            "showVisibility": false,
+            "showDewPoint": false,
+            "hideWhenNoAlerts": true
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-morning-m3",
+          "type": "calendar",
+          "position": { "x": 20, "y": 780 },
+          "size": { "w": 1040, "h": 640 },
+          "zIndex": 1,
+          "config": {
+            "viewMode": "agenda",
+            "daysToShow": 2,
+            "showTime": true,
+            "showLocation": true,
+            "maxEvents": 8,
+            "showWeekNumbers": false
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-morning-m4",
+          "type": "traffic",
+          "position": { "x": 20, "y": 1440 },
+          "size": { "w": 1040, "h": 460 },
+          "zIndex": 1,
+          "config": {
+            "routes": [],
+            "refreshIntervalMs": 300000
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,163 @@
+{
+  "_type": "home-screens-layout",
+  "_version": 1,
+  "metadata": {
+    "name": "Kitchen Display",
+    "description": "Kitchen command center with clock, calendar, weekly meal planner, garbage schedule, and shopping list",
+    "exportedAt": "2026-01-01T00:00:00.000Z",
+    "configVersion": 10,
+    "sourceDisplay": { "width": 1920, "height": 1080 },
+    "screenCount": 1,
+    "moduleCount": 5
+  },
+  "visual": {
+    "rotationIntervalMs": 30000,
+    "transitionEffect": "fade",
+    "transitionDuration": 0.6
+  },
+  "screens": [
+    {
+      "id": "tpl-kitchen-ls-s1",
+      "name": "Kitchen Display",
+      "backgroundImage": "",
+      "modules": [
+        {
+          "id": "tpl-kitchen-ls-m1",
+          "type": "clock",
+          "position": { "x": 20, "y": 20 },
+          "size": { "w": 460, "h": 240 },
+          "zIndex": 1,
+          "config": {
+            "view": "digital",
+            "format24h": false,
+            "showSeconds": false,
+            "showDate": true,
+            "dateFormat": "EEE, MMM d",
+            "showWeekNumber": false,
+            "showDayOfYear": false,
+            "showNumerals": true,
+            "animateFlip": false,
+            "accentColor": "#f59e0b",
+            "worldZones": [],
+            "referenceTime": "",
+            "referenceLabel": "",
+            "countUp": true
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-kitchen-ls-m2",
+          "type": "calendar",
+          "position": { "x": 500, "y": 20 },
+          "size": { "w": 460, "h": 240 },
+          "zIndex": 1,
+          "config": {
+            "viewMode": "month",
+            "daysToShow": 7,
+            "showTime": false,
+            "showLocation": false,
+            "maxEvents": 5,
+            "showWeekNumbers": false
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-kitchen-ls-m3",
+          "type": "meal-planner",
+          "position": { "x": 20, "y": 280 },
+          "size": { "w": 940, "h": 780 },
+          "zIndex": 1,
+          "config": {
+            "view": "week",
+            "showEmoji": true,
+            "showPrepTime": false,
+            "showTags": false,
+            "accentColor": "#f59e0b"
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-kitchen-ls-m4",
+          "type": "garbage-day",
+          "position": { "x": 980, "y": 20 },
+          "size": { "w": 920, "h": 520 },
+          "zIndex": 1,
+          "config": {
+            "trashDay": 2,
+            "trashFrequency": "weekly",
+            "trashStartDate": "2026-01-06",
+            "trashColor": "#6b7280",
+            "recyclingDay": 2,
+            "recyclingFrequency": "biweekly",
+            "recyclingStartDate": "2026-01-06",
+            "recyclingColor": "#22c55e",
+            "customDay": -1,
+            "customFrequency": "weekly",
+            "customStartDate": "2026-01-06",
+            "customColor": "#3b82f6",
+            "customLabel": "Yard Waste",
+            "highlightMode": "day-before"
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-kitchen-ls-m5",
+          "type": "sticky-note",
+          "position": { "x": 980, "y": 560 },
+          "size": { "w": 920, "h": 500 },
+          "zIndex": 1,
+          "config": {
+            "content": "Shopping List\n- Milk\n- Bread\n- Eggs",
+            "noteColor": "#fbbf24"
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        }
+      ]
+    }
+  ]
+}

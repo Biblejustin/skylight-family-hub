@@ -1,0 +1,161 @@
+{
+  "_type": "home-screens-layout",
+  "_version": 1,
+  "metadata": {
+    "name": "Family Dashboard",
+    "description": "A family-friendly dashboard with clock, greeting, weather, calendar, and countdown modules",
+    "exportedAt": "2026-01-01T00:00:00.000Z",
+    "configVersion": 10,
+    "sourceDisplay": { "width": 1080, "height": 1920 },
+    "screenCount": 1,
+    "moduleCount": 5
+  },
+  "visual": {
+    "rotationIntervalMs": 30000,
+    "transitionEffect": "fade",
+    "transitionDuration": 0.6
+  },
+  "screens": [
+    {
+      "id": "tpl-fam-s1",
+      "name": "Family Dashboard",
+      "backgroundImage": "",
+      "modules": [
+        {
+          "id": "tpl-fam-m1",
+          "type": "clock",
+          "position": { "x": 20, "y": 20 },
+          "size": { "w": 1040, "h": 280 },
+          "zIndex": 1,
+          "config": {
+            "view": "digital",
+            "format24h": false,
+            "showSeconds": false,
+            "showDate": true,
+            "dateFormat": "EEEE, MMMM d",
+            "showWeekNumber": false,
+            "showDayOfYear": false,
+            "showNumerals": true,
+            "animateFlip": true,
+            "accentColor": "#3b82f6",
+            "worldZones": [],
+            "referenceTime": "",
+            "referenceLabel": "",
+            "countUp": true
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-fam-m2",
+          "type": "greeting",
+          "position": { "x": 20, "y": 320 },
+          "size": { "w": 1040, "h": 120 },
+          "zIndex": 1,
+          "config": {
+            "name": "Family"
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-fam-m3",
+          "type": "weather",
+          "position": { "x": 20, "y": 460 },
+          "size": { "w": 1040, "h": 440 },
+          "zIndex": 1,
+          "config": {
+            "view": "combined",
+            "iconSet": "color",
+            "provider": "global",
+            "hoursToShow": 8,
+            "showFeelsLike": true,
+            "daysToShow": 5,
+            "showHighLow": true,
+            "showPrecipAmount": false,
+            "showPrecipitation": true,
+            "showHumidity": true,
+            "showWind": true,
+            "showPressure": false,
+            "showVisibility": false,
+            "showDewPoint": false,
+            "hideWhenNoAlerts": true
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-fam-m4",
+          "type": "calendar",
+          "position": { "x": 20, "y": 920 },
+          "size": { "w": 1040, "h": 740 },
+          "zIndex": 1,
+          "config": {
+            "viewMode": "agenda",
+            "daysToShow": 7,
+            "showTime": true,
+            "showLocation": false,
+            "maxEvents": 10,
+            "showWeekNumbers": false
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        },
+        {
+          "id": "tpl-fam-m5",
+          "type": "countdown",
+          "position": { "x": 20, "y": 1680 },
+          "size": { "w": 1040, "h": 220 },
+          "zIndex": 1,
+          "config": {
+            "events": [],
+            "showPastEvents": false,
+            "scale": 1
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "rgba(0, 0, 0, 0.4)",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 16,
+            "backdropBlur": 12
+          }
+        }
+      ]
+    }
+  ]
+}

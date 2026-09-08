@@ -1,0 +1,60 @@
+{
+  "_type": "home-screens-layout",
+  "_version": 1,
+  "metadata": {
+    "name": "Minimal Clock",
+    "description": "A single large clock centered on the display for a clean, minimalist look",
+    "exportedAt": "2026-01-01T00:00:00.000Z",
+    "configVersion": 10,
+    "sourceDisplay": { "width": 1080, "height": 1920 },
+    "screenCount": 1,
+    "moduleCount": 1
+  },
+  "visual": {
+    "rotationIntervalMs": 30000,
+    "transitionEffect": "fade",
+    "transitionDuration": 0.6
+  },
+  "screens": [
+    {
+      "id": "tpl-min-s1",
+      "name": "Minimal Clock",
+      "backgroundImage": "",
+      "modules": [
+        {
+          "id": "tpl-min-m1",
+          "type": "clock",
+          "position": { "x": 20, "y": 660 },
+          "size": { "w": 1040, "h": 600 },
+          "zIndex": 1,
+          "config": {
+            "view": "minimal",
+            "format24h": false,
+            "showSeconds": false,
+            "showDate": true,
+            "dateFormat": "EEEE, MMMM d",
+            "showWeekNumber": false,
+            "showDayOfYear": false,
+            "showNumerals": false,
+            "animateFlip": false,
+            "accentColor": "#3b82f6",
+            "worldZones": [],
+            "referenceTime": "",
+            "referenceLabel": "",
+            "countUp": true
+          },
+          "style": {
+            "opacity": 1,
+            "borderRadius": 12,
+            "padding": 16,
+            "backgroundColor": "transparent",
+            "textColor": "#ffffff",
+            "fontFamily": "Inter, system-ui, sans-serif",
+            "fontSize": 72,
+            "backdropBlur": 0
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,244 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { withAuth, getClientIP, parseJsonBody, execErrorMessage } from '@/lib/api-utils';
+import {
+  nmcli,
+  nmcliSudo,
+  getManagementInterface,
+  inhibitWatchdog,
+  uninhibitWatchdog,
+  scheduleRollback,
+  hasActiveRollback,
+  ensureSourceRouting,
+  isPotentiallyManagementInterface,
+  readConnectionIpv4Settings,
+  type Ipv4Settings,
+} from '@/lib/network-commands';
+import {
+  validateUUID,
+  validateIPv4,
+  validateCIDRPrefix,
+} from '@/lib/network-validation';
+import { parseTerseFields } from '@/lib/network-parse';
+
+export const dynamic = 'force-dynamic';
+
+/* ─── Types ─────────────────────────────────── */
+
+interface IPConfigRequest {
+  connectionId: string;
+  method: 'auto' | 'manual';
+  // Required when method=manual:
+  address?: string;
+  prefix?: number;
+  gateway?: string;
+  dns?: string[];
+  confirmed?: boolean;
+}
+
+/* ─── Helpers ───────────────────────────────── */
+
+/**
+ * Capture the current IPv4 settings for a connection so we can
+ * schedule a rollback if the new configuration causes a disconnection.
+ */
+async function captureCurrentSettings(connectionId: string): Promise<Ipv4Settings> {
+  try {
+    return await readConnectionIpv4Settings(connectionId);
+  } catch {
+    // Fallback: assume auto so rollback is safe
+    return { method: 'auto' };
+  }
+}
+
+/**
+ * Get the device name associated with a connection ID.
+ * Returns null if the connection is not active on any device.
+ */
+async function getDeviceForConnection(connectionId: string): Promise<string | null> {
+  try {
+    const output = await nmcli([
+      '-t', '-f', 'GENERAL.IP-IFACE',
+      'connection', 'show', connectionId,
+    ]);
+
+    for (const line of output.split('\n')) {
+      if (!line.trim()) continue;
+      const fields = parseTerseFields(line);
+      // Keyed format: "GENERAL.IP-IFACE:<device>"
+      if (fields.length >= 2 && fields[0] === 'GENERAL.IP-IFACE') {
+        return fields[1] || null;
+      }
+      // Terse single-field output (just the value)
+      if (fields.length === 1 && fields[0]) {
+        return fields[0];
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/* ─── Route handler ─────────────────────────── */
+
+export const PUT = withAuth(async (request: NextRequest) => {
+  const body = await parseJsonBody<IPConfigRequest>(request);
+  if (body instanceof NextResponse) return body;
+
+  const { connectionId, method, address, prefix, gateway, dns, confirmed } = body;
+
+  // 1. Validate connectionId
+  const uuidResult = validateUUID(connectionId);
+  if (!uuidResult.valid) {
+    return NextResponse.json({ error: uuidResult.error }, { status: 400 });
+  }
+
+  // 2. Validate method
+  if (method !== 'auto' && method !== 'manual') {
+    return NextResponse.json(
+      { error: 'method must be "auto" or "manual"' },
+      { status: 400 },
+    );
+  }
+
+  // 3. Validate manual-mode fields
+  if (method === 'manual') {
+    if (!address) {
+      return NextResponse.json({ error: 'address is required for manual mode' }, { status: 400 });
+    }
+    const addrResult = validateIPv4(address);
+    if (!addrResult.valid) {
+      return NextResponse.json({ error: `address: ${addrResult.error}` }, { status: 400 });
+    }
+
+    if (prefix === undefined || prefix === null) {
+      return NextResponse.json({ error: 'prefix is required for manual mode' }, { status: 400 });
+    }
+    const prefixResult = validateCIDRPrefix(prefix);
+    if (!prefixResult.valid) {
+      return NextResponse.json({ error: `prefix: ${prefixResult.error}` }, { status: 400 });
+    }
+
+    if (!gateway) {
+      return NextResponse.json({ error: 'gateway is required for manual mode' }, { status: 400 });
+    }
+    const gatewayResult = validateIPv4(gateway);
+    if (!gatewayResult.valid) {
+      return NextResponse.json({ error: `gateway: ${gatewayResult.error}` }, { status: 400 });
+    }
+
+    if (dns !== undefined && !Array.isArray(dns)) {
+      return NextResponse.json({ error: 'dns must be an array of IP addresses' }, { status: 400 });
+    }
+    if (dns && Array.isArray(dns)) {
+      for (let i = 0; i < dns.length; i++) {
+        const dnsResult = validateIPv4(dns[i]);
+        if (!dnsResult.valid) {
+          return NextResponse.json(
+            { error: `dns[${i}]: ${dnsResult.error}` },
+            { status: 400 },
+          );
+        }
+      }
+    }
+  }
+
+  // 4. Determine whether this connection is on the management interface
+  const clientIP = getClientIP(request);
+  const managementIface = await getManagementInterface(clientIP);
+
+  // Get the device associated with this connection to compare
+  const connectionDevice = await getDeviceForConnection(connectionId);
+  // Fail-closed: if we can't determine the device or management interface,
+  // treat it as potentially management to avoid silently skipping safety guards
+  const isManagement = isPotentiallyManagementInterface(managementIface, connectionDevice);
+
+  // 5. Reject if a rollback is already in progress
+  if (isManagement && hasActiveRollback()) {
+    return NextResponse.json(
+      { error: 'A network change is already pending confirmation. Wait for it to complete or be reverted.' },
+      { status: 409 },
+    );
+  }
+
+  // 6. Require confirmation for management interface changes
+  if (isManagement && !confirmed) {
+    return NextResponse.json({
+      requiresConfirmation: true,
+      warning:
+        "This is the interface you're using to access this page. " +
+        'Changing IP settings may temporarily disconnect you. ' +
+        'An automatic rollback will occur in 60 seconds if connectivity is lost.',
+    });
+  }
+
+  // 6. Capture current settings for rollback (management interface only)
+  const previousSettings = isManagement
+    ? await captureCurrentSettings(connectionId)
+    : null;
+
+  // 7. Only inhibit watchdog when we can actually schedule a rollback
+  const canRollback = isManagement && previousSettings !== null;
+  if (canRollback) {
+    await inhibitWatchdog();
+  }
+
+  // 8. Build nmcli modify args
+  let modifyArgs: string[];
+  if (method === 'auto') {
+    modifyArgs = [
+      'connection', 'modify', connectionId,
+      'ipv4.method', 'auto',
+      'ipv4.addresses', '',
+      'ipv4.gateway', '',
+      'ipv4.dns', '',
+    ];
+  } else {
+    modifyArgs = [
+      'connection', 'modify', connectionId,
+      'ipv4.method', 'manual',
+      'ipv4.addresses', `${address}/${prefix}`,
+      'ipv4.gateway', gateway!,
+      'ipv4.dns', (dns && dns.length > 0) ? dns.join(' ') : '',
+    ];
+  }
+
+  // 9. Apply the configuration change
+  try {
+    await nmcliSudo(modifyArgs);
+  } catch (err: unknown) {
+    if (canRollback) await uninhibitWatchdog();
+    return NextResponse.json(
+      { ok: false, error: execErrorMessage(err, 'Failed to modify connection') },
+      { status: 500 },
+    );
+  }
+
+  // 10. Cycle the connection to apply the new settings
+  try {
+    await nmcliSudo(['connection', 'down', connectionId]);
+    await nmcliSudo(['connection', 'up', connectionId]);
+
+    // Refresh source routing after IP change
+    await ensureSourceRouting();
+  } catch (err: unknown) {
+    if (canRollback) await uninhibitWatchdog();
+    return NextResponse.json(
+      { ok: false, error: execErrorMessage(err, 'Failed to cycle connection') },
+      { status: 500 },
+    );
+  }
+
+  // 11. Schedule rollback for management interface changes
+  let rollbackId: string | undefined;
+  if (canRollback) {
+    rollbackId = scheduleRollback(connectionId, previousSettings!);
+  }
+
+  return NextResponse.json({
+    ok: true,
+    ...(rollbackId && { rollbackId }),
+  });
+}, 'Failed to update IP configuration');

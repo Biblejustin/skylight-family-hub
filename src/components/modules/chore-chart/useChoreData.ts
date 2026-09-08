@@ -1,0 +1,285 @@
+'use client';
+
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import type { ChoreMember, ChoreDefinition, ChoreCompletion, ChoreToggleRequest, ChoreToggleResponse } from '@/types/config';
+import { useFetchData } from '@/hooks/useFetchData';
+import type { FetchError } from '@/lib/fetch-error';
+import { displayFetch } from '@/lib/display-fetch';
+import { displayCache } from '@/lib/display-cache';
+import { choresUrl, choresDataUrl, rewardsUrl, FETCH_KEY_REGISTRY } from '@/lib/fetch-keys';
+import type { RewardRedemption, RewardDefinition } from '@/lib/reward-data';
+import {
+  type ResolvedAssignment,
+  type MemberStats,
+  type WeekDayData,
+  todayStr,
+  parseISO,
+  completionKey,
+  getWeekDatesFor,
+  resolveAssignmentsFor,
+  computeWeeklyPoints,
+  computeStreak,
+  countWeekAssignments,
+  isDayFullyComplete,
+} from './types';
+import { choresAssignedTo } from '@/lib/chore-assignments';
+import { getLocalizedDayNames } from '@/lib/meal-constants';
+import { useFormattingLocale } from '@/i18n';
+import { logger } from '@/lib/logger';
+
+const log = logger('chores');
+const EMPTY_REDEMPTIONS: RewardRedemption[] = [];
+
+/** Display-only settings accepted by useChoreData — no members/chores,
+ *  those are fetched from the shared /api/chores/data endpoint. */
+export interface ChoreDataConfig {
+  weekStartDay: 'sunday' | 'monday';
+  showPoints: boolean;
+  showStreaks: boolean;
+  showTimeOfDay: boolean;
+  accentColor: string;
+}
+
+interface ChoresResponse {
+  completions: ChoreCompletion[];
+}
+
+interface ChoreDataResponse {
+  members: ChoreMember[];
+  chores: ChoreDefinition[];
+}
+
+interface RewardsResponse {
+  rewards?: RewardDefinition[];
+  balances: Record<string, number>;
+  redemptions?: RewardRedemption[];
+}
+
+interface ChoreDataState {
+  members: ChoreMember[];
+  chores: ChoreDefinition[];
+  rewards: RewardDefinition[];
+  todayAssignments: ResolvedAssignment[];
+  completionSet: Set<string>;
+  memberStats: Map<string, MemberStats>;
+  weekData: WeekDayData[];
+  recentRedemptions: RewardRedemption[];
+  /** Every redemption the server still holds (it purges at 90 days), for the store's feed. */
+  allRedemptions: RewardRedemption[];
+  isLoading: boolean;
+  error: FetchError | null;
+  toggleComplete: (choreId: string, memberId: string) => Promise<void>;
+  /** Same mutation, with a result for touch views that show save failures. */
+  toggleCompleteResult: (choreId: string, memberId: string, direction?: ChoreToggleRequest['direction']) => Promise<boolean>;
+}
+
+export function useChoreData(config: ChoreDataConfig): ChoreDataState {
+  // TTLs come from the shared registry so the prefetch system and the hook
+  // stay in lockstep — see fetch-keys.ts. Drops to 5s give phone→wall
+  // cross-device toggles a 5s worst-case lag.
+  const choreChartTtl = FETCH_KEY_REGISTRY['chore-chart']?.ttlMs ?? 5_000;
+  const formattingLocale = useFormattingLocale();
+  const dayNames = useMemo(() => getLocalizedDayNames(formattingLocale, 'short'), [formattingLocale]);
+  const [fetchedCompletions, completionsError] = useFetchData<ChoresResponse>(choresUrl(), choreChartTtl);
+  const [fetchedChoreData] = useFetchData<ChoreDataResponse>(choresDataUrl(), 60_000);
+  const [fetchedRewards] = useFetchData<RewardsResponse>(rewardsUrl(), choreChartTtl);
+  const [completions, setCompletions] = useState<ChoreCompletion[]>([]);
+  const completionsRef = useRef(completions);
+  completionsRef.current = completions;
+  // Mirror fetchedRewards into local state so toggleComplete can overwrite it
+  // from the POST response for instant balance updates on the same device.
+  const [rewards, setRewards] = useState<RewardsResponse | null>(null);
+  // Timestamp of the last server-truth rewards write we applied from a POST
+  // response. A /api/rewards GET isn't serialized with the rewards opQueue, so
+  // a poll launched before our toggle can arrive AFTER the toggle response and
+  // carry a pre-credit balance. We silence those stale polls during an
+  // override window just long enough for the next poll to catch up.
+  const rewardsOverrideUntil = useRef<number>(0);
+  const completionsOverrideUntil = useRef(0);
+  const pendingMutations = useRef(0);
+
+  const members = useMemo(() => fetchedChoreData?.members ?? [], [fetchedChoreData]);
+  const chores = useMemo(() => fetchedChoreData?.chores ?? [], [fetchedChoreData]);
+
+  useEffect(() => {
+    if (pendingMutations.current > 0 || Date.now() < completionsOverrideUntil.current) return;
+    if (fetchedCompletions) setCompletions(fetchedCompletions.completions ?? []);
+  }, [fetchedCompletions]);
+  useEffect(() => {
+    if (!fetchedRewards) return;
+    // Drop polls that land inside the override window — they may be replies
+    // to in-flight fetches that predate the current server-truth balance.
+    if (Date.now() < rewardsOverrideUntil.current) return;
+    setRewards(fetchedRewards);
+  }, [fetchedRewards]);
+
+  const isLoading = (!fetchedCompletions && !completionsError) || !fetchedChoreData;
+  const error = completionsError;
+
+  const completionSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of completions) {
+      set.add(completionKey(c.choreId, c.memberId, c.date));
+    }
+    return set;
+  }, [completions]);
+
+  const todayAssignments = useMemo(
+    () => resolveAssignmentsFor(chores, members, todayStr(), completionSet),
+    [chores, members, completionSet],
+  );
+
+  // Per-member stats (streaks computed client-side with config context)
+  const memberStats = useMemo(() => {
+    const stats = new Map<string, MemberStats>();
+    const today = todayStr();
+    const weekDates = getWeekDatesFor(new Date(), config.weekStartDay);
+
+    for (const member of members) {
+      const myAssignments = todayAssignments.filter((a) => a.memberId === member.id);
+      const completed = myAssignments.filter((a) => a.isCompleted).length;
+      const total = myAssignments.length;
+
+      const { earned: weeklyPoints, total: weeklyPointsTotal } = computeWeeklyPoints(
+        chores,
+        member.id,
+        weekDates,
+        completionSet,
+      );
+      const streak = computeStreak(chores, member.id, today, completionSet);
+
+      stats.set(member.id, {
+        total,
+        completed,
+        percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
+        streak,
+        weeklyPoints,
+        weeklyPointsTotal,
+        rewardBalance: rewards?.balances?.[member.id] ?? 0,
+        weekAssigned: countWeekAssignments(chores, member.id, weekDates),
+      });
+    }
+
+    return stats;
+  }, [members, chores, todayAssignments, completionSet, config.weekStartDay, rewards]);
+
+  // Week data for star chart — aligned to configured week start day
+  const weekData = useMemo(() => {
+    const days: WeekDayData[] = [];
+    const today = todayStr();
+    const weekDates = getWeekDatesFor(new Date(), config.weekStartDay);
+
+    for (const date of weekDates) {
+      const dayOfWeek = parseISO(date).getDay();
+
+      const memberStars: Record<string, boolean> = {};
+      const memberAssigned: Record<string, boolean> = {};
+
+      for (const member of members) {
+        // A star is earned when ALL assigned chores for that day are completed
+        memberStars[member.id] = isDayFullyComplete(chores, member.id, date, completionSet);
+        memberAssigned[member.id] = choresAssignedTo(chores, member.id, date).length > 0;
+      }
+
+      days.push({
+        date,
+        dayName: dayNames[dayOfWeek],
+        dayIndex: dayOfWeek,
+        isToday: date === today,
+        memberStars,
+        memberAssigned,
+      });
+    }
+
+    return days;
+  }, [members, chores, completionSet, config.weekStartDay, dayNames]);
+
+  const toggleCompleteResult = useCallback(async (choreId: string, memberId: string, direction?: ChoreToggleRequest['direction']) => {
+    const today = todayStr();
+    const priorCompletion = completionsRef.current.find(
+      (completion) => completion.choreId === choreId && completion.memberId === memberId && completion.date === today,
+    );
+    pendingMutations.current += 1;
+
+    // Capture prior target before React schedules its updater. A fast failure
+    // can arrive before the updater runs; rollback must preserve other people.
+    setCompletions((prev) => {
+      const existing = prev.findIndex(
+        (c) => c.choreId === choreId && c.memberId === memberId && c.date === today,
+      );
+      const shouldComplete = direction ? direction === 'complete' : existing < 0;
+      if (existing >= 0 && !shouldComplete) {
+        return prev.filter((_, i) => i !== existing);
+      }
+      if (existing >= 0 || !shouldComplete) return prev;
+      return [...prev, { choreId, memberId, date: today }];
+    });
+
+    try {
+      const reqBody: ChoreToggleRequest = { choreId, memberId, date: today, ...(direction ? { direction } : {}) };
+      const res = await displayFetch(choresUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reqBody),
+      });
+      if (!res.ok) throw new Error('Failed to toggle');
+      const data: ChoreToggleResponse = await res.json();
+      setCompletions(data.completions ?? []);
+      completionsOverrideUntil.current = Date.now() + choreChartTtl;
+      displayCache.set(choresUrl(), { completions: data.completions ?? [] }, choreChartTtl);
+      // Update rewards from the POST response so ticket balances reflect the
+      // new credit/debit instantly — without waiting for the next rewards poll.
+      // Also prime the shared cache so sibling module instances (e.g. a
+      // dashboard tab that mounts later) don't re-read stale data, and set the
+      // override window so a stale in-flight poll can't flash the old balance
+      // back until the next poll returns a fresh snapshot.
+      if (data.rewards) {
+        setRewards(data.rewards);
+        displayCache.set(rewardsUrl(), data.rewards, choreChartTtl);
+        rewardsOverrideUntil.current = Date.now() + choreChartTtl;
+      }
+      // Surface server warnings (e.g. balance went negative on un-complete) so they're
+      // at least visible in the kiosk console — display modules don't have a UI for
+      // these alerts, but the admin viewing dev tools can see them.
+      if (data.warning) {
+        log.warn(data.warning);
+      }
+      return true;
+    } catch {
+      setCompletions((prev) => {
+        const other = prev.filter((completion) => completion.choreId !== choreId || completion.memberId !== memberId || completion.date !== today);
+        return priorCompletion ? [...other, priorCompletion] : other;
+      });
+      return false;
+    } finally {
+      pendingMutations.current -= 1;
+    }
+  }, [choreChartTtl]);
+
+  const toggleComplete = useCallback(async (choreId: string, memberId: string) => {
+    await toggleCompleteResult(choreId, memberId);
+  }, [toggleCompleteResult]);
+
+  const recentRedemptions = useMemo(() => {
+    const list = rewards?.redemptions;
+    if (!list || list.length === 0) return [];
+    const cutoff = Date.now() - 5 * 60_000;
+    return list.filter((r) => new Date(r.redeemedAt).getTime() >= cutoff);
+  }, [rewards]);
+
+  return {
+    members,
+    chores,
+    rewards: rewards?.rewards ?? [],
+    todayAssignments,
+    completionSet,
+    memberStats,
+    weekData,
+    recentRedemptions,
+    allRedemptions: rewards?.redemptions ?? EMPTY_REDEMPTIONS,
+    isLoading,
+    error,
+    toggleComplete,
+    toggleCompleteResult,
+  };
+}
