@@ -16,9 +16,22 @@ Publication preparation: September 7, 2026 (America/Chicago).
 
 On one 150-CAL with Android 13: full-screen browser rendering and touch; calendar week/month navigation; person-scoped chores; reward selection; sample earn/spend/persist behavior; Apple shared album rendering; and delayed browser launch after a normal reboot. These checks used the prior Mac-hosted build of the same application changes. Actual household points were not changed by publication tests.
 
+## Linux Docker verification
+
+[GitHub Actions Docker smoke test](https://github.com/Biblejustin/skylight-family-hub/actions/runs/34177967620) passed for application commit `d50a60d7f76c06f348fd9e39a990b05471455aed` on an Ubuntu Linux runner:
+
+- Image built from the clean repository and installed Linux dependencies.
+- Container started nonroot with read-only application files and writable persistent volumes.
+- Display HTML rendered; the calendar route loaded and correctly reported empty setup.
+- Empty configuration contained no remote feeds or photo links.
+- Initializer preserved an edited configuration exactly.
+- Both data and background files, plus changed configuration, survived container recreation.
+
+The first container run exposed missing weather defaults in the empty example. Those defaults were added; the passing run includes that fix.
+
 ## Still requires target NAS testing
 
-Docker Engine was unavailable on the preparation machine. Compose/Dockerfile, persistent storage paths, initializer, health-check code and synthetic migration behavior received static/local review; **no Linux image build or NAS deployment is claimed here**.
+Docker was unavailable on the preparation Mac; Linux verification ran in GitHub Actions. No deployment onto a household NAS or transfer of private family data is claimed here. ARM64 and individual NAS products have not been tested.
 
 Before retiring another host, verify the actual NAS build, startup, volume permissions, login, calendar sources, photo rendering, migrated balances, and container restart persistence. Then verify Skylight with the laptop disconnected. Firmware differences and other NAS architectures require their own checks.
 
