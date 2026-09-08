@@ -15,6 +15,12 @@
       "googleCalendarIds": [],
       "icalSources": [],
       "daysAhead": 7
+    },
+    "weather": {
+      "provider": "open-meteo",
+      "latitude": 0,
+      "longitude": 0,
+      "units": "imperial"
     }
   },
   "screens": [
