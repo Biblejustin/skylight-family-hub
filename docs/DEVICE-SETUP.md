@@ -30,7 +30,7 @@ Keep the existing wall-power cable behind the frame and route it into a secured 
 | System WebView | 109.0.5414.123 |
 | Fully Kiosk Browser | 1.61.2, free features |
 
-Root, bootloader unlocking, firmware flashing, factory reset, a replacement HOME application, and disabling the Skylight watchdog were not required. The original app and its data remained in place. Browser rendering, touch, calendar navigation, person-specific chores, reward spending with sample data, and startup after a normal reboot were verified. Not every Home Screens feature was tested on this older WebView.
+Root, bootloader unlocking, firmware flashing, factory reset, a replacement HOME application, and disabling the Skylight watchdog were not required. The original app and its data remained in place. Browser rendering, touch, calendar navigation, person-specific chores, and reward spending with sample data were verified. A later reboot test exposed Android boot-broadcast deferral; follow the per-app compatibility step below and verify startup without manually opening either app. Not every Home Screens feature was tested on this older WebView.
 
 ## 1. Prepare the host and cables
 
@@ -159,7 +159,7 @@ In Fully's settings:
 1. Set **Start URL** to your own authorized display URL and save it.
 2. Enable fullscreen browsing and **Keep Screen On**.
 3. Hide browser, status, and navigation bars as appropriate for your layout.
-4. Leave Fully's **Launch on Boot** off; the next step supplies the tested delayed startup.
+4. Leave Fully's **Launch on Boot** off; the next steps configure delayed startup and its Android compatibility setting.
 5. Load the Start URL and confirm the family hub appears.
 
 No Fully PLUS purchase or cloud account was used. The setup did not require camera, microphone, location, or storage access. The tested installation allowed Android notifications. The helper below needs its own separate permission for its delayed launch; it does not require granting Fully an overlay permission.
@@ -216,6 +216,20 @@ The helper draws no overlay. Android's overlay permission supplies the backgroun
 
 Do not change the default HOME application or disable the stock Skylight application for this method.
 
+### Android 13 boot-broadcast compatibility
+
+The helper targets API 33. Android 13 change `203704822` can defer its boot broadcast until a process in the app's UID starts. Opening the helper after reboot can therefore make a manual check look like successful automatic startup. [Android's change description](https://developer.android.com/about/versions/13/reference/compat-framework-changes#defer_boot_completed_broadcast_change_id).
+
+On the tested firmware, this per-app override was accepted before the final reboot check:
+
+```sh
+adb -s "$SKYLIGHT_SERIAL" shell am compat disable 203704822 org.familyhub.startup
+```
+
+This changes one compatibility setting for **Family Hub Startup**; it does not change the APK, root the device, or disable a system-wide policy. Other firmware may reject the override because of Android's compatibility-tool restrictions. Check the command result; an error does not establish working startup. See [Android's compatibility tools](https://developer.android.com/guide/app-compatibility/test-debug#toggle_changes_using_adb).
+
+The command being accepted is only setup evidence. The hands-free reboot test below must still pass; the first test was insufficient to establish reliable boot behavior.
+
 ## 8. Verify reboot and USB-free operation
 
 1. Keep the hub server running and the Skylight's wall power connected.
@@ -225,13 +239,13 @@ Do not change the default HOME application or disable the stock Skylight applica
    adb -s "$SKYLIGHT_SERIAL" reboot
    ```
 
-3. Watch the physical screen. The stock calendar may appear first. Fully should open after the helper receives the boot broadcast and completes its 20-second delay.
+3. Watch the physical screen. The stock calendar may appear first. Fully should open after the helper receives the boot broadcast and completes its 20-second delay. Do not manually open the helper or Fully, including through ADB, during this test.
 4. Confirm it remains visible and shows the correct hub.
 5. Test navigation and, using a temporary sample chore, verify that completing and undoing it save correctly. Do not use real reward balances for testing.
 6. Disconnect only the computer-to-Skylight micro-USB cable.
 7. Repeat a screen-navigation check over Wi-Fi. The hub should continue working with wall power and Wi-Fi alone.
 
-The original setup passed a normal reboot test with Fully taking over after the stock calendar. Its helper service stopped afterward. The 20-second interval begins at the boot broadcast, not at power-on. A successful `launch requested` status is not visual proof; check the screen yourself.
+The final normal reboot test passed with the per-app override: Fully opened the NAS-hosted weekly calendar with events, without manual input or opening either app after reboot. This supersedes the initial observation, which had not established unattended startup. See the [validation record](VALIDATION.md). The 20-second interval begins at the boot broadcast, not at power-on. A successful `launch requested` status is not visual proof; check the screen yourself.
 
 Moving the server to a Pi is a separate step. Rebuild or install its dependencies on Linux; do not copy a macOS `node_modules` or standalone runtime bundle. Transfer private `data/` locally, set the server and screen timezones, update Fully's Start URL, and verify calendar sources, chores, balances, and parent access. Pi hosting and startup-service behavior need their own device test.
 
@@ -254,13 +268,19 @@ To stop automatic hub startup:
 1. Open **Family Hub Startup**.
 2. Turn **Open Fully Kiosk after reboot** off. This also cancels a pending countdown.
 3. Leave Fully's own **Launch on Boot** off.
-4. Optionally uninstall the helper:
+4. If you applied the compatibility override, remove it to restore Android's default behavior:
+
+   ```sh
+   adb -s "$SKYLIGHT_SERIAL" shell am compat reset 203704822 org.familyhub.startup
+   ```
+
+5. Optionally uninstall the helper:
 
    ```sh
    adb -s "$SKYLIGHT_SERIAL" uninstall org.familyhub.startup
    ```
 
-5. Optionally uninstall Fully if you no longer need its saved browser settings:
+6. Optionally uninstall Fully if you no longer need its saved browser settings:
 
    ```sh
    adb -s "$SKYLIGHT_SERIAL" uninstall de.ozerov.fully
@@ -273,6 +293,7 @@ Uninstalling Fully removes its local browser configuration, including the saved 
 - The initial Settings entry relies on firmware behavior, not a supported Skylight developer interface.
 - The helper handles startup once. It does not continuously monitor or override a later Skylight watchdog takeover.
 - Android boot broadcasts can be delayed by device unlock, battery restrictions, force-stop state, or vendor behavior.
+- Android 13 boot deferral required a per-app compatibility override on the tested setup. Another firmware may reject that override; successful installation alone does not prove unattended startup.
 - Revalidate after Skylight firmware, Android WebView, or Fully updates.
 - The screen is a network client. Losing the LAN server can prevent both fresh pages and chore saves; this setup does not claim full offline operation.
 - Calendar and photo providers can delay their feeds. Browser refreshes do not make external updates instantaneous.

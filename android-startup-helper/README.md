@@ -50,9 +50,30 @@ After installation by the device owner:
 2. Confirm Fully Kiosk shows **available**. Tap **Allow display over other apps** and enable that permission in Android settings.
 3. Return to the helper. Run **Test delayed start**, then leave it for another app. After roughly 20 seconds, confirm Fully appears.
 4. Enable **Open Fully Kiosk after reboot**.
-5. Reboot normally. Confirm Fully appears after the stock startup sequence, then remains visible. Test on the physical device is required; a successful build does not establish boot behavior.
+5. Apply the Android 13 compatibility setting below if using the tested setup, and check that the command succeeds.
+6. Reboot normally. Do not open the helper or Fully manually, including through ADB. Confirm Fully appears after the stock startup sequence, then remains visible. Test on the physical device is required; a successful build or foreground countdown does not establish boot behavior.
 
 **Cancel pending start** stops the current countdown. Disabling automatic startup also cancels it. The notification opens these controls; tapping it does not itself cancel. **Open Fully Kiosk now** is a normal foreground launch and works without overlay permission.
+
+### Android 13 compatibility setting
+
+This APK targets API 33. Android change `203704822` defers boot broadcasts until a process in the app's UID starts. A manual app launch after reboot can conceal that deferral. [Official Android change description](https://developer.android.com/about/versions/13/reference/compat-framework-changes#defer_boot_completed_broadcast_change_id).
+
+Using your selected device serial from the setup guide:
+
+```sh
+adb -s "$SKYLIGHT_SERIAL" shell am compat disable 203704822 org.familyhub.startup
+```
+
+The tested firmware accepted this app-specific override. It changes no APK code or global boot setting and required no root access. Other firmware may reject it; Android limits compatibility overrides by app and platform build. Acceptance alone does not prove automatic startup. Complete the hands-free reboot check above.
+
+To remove only this override and restore the platform default:
+
+```sh
+adb -s "$SKYLIGHT_SERIAL" shell am compat reset 203704822 org.familyhub.startup
+```
+
+Resetting may restore the deferral. The helper does not apply or reset this external setting itself. [Android compatibility command reference](https://developer.android.com/guide/app-compatibility/test-debug#toggle_changes_using_adb).
 
 ## Limits and removal
 
@@ -60,7 +81,7 @@ Designed for Android 13/API 33. The manifest permits API 26+, but other Android 
 
 The delay starts when the boot receiver runs, not when electrical power is applied. It uses uptime, so device sleep can extend the delay. Boot broadcasts can be delayed by unlocking, force-stop state, battery restrictions, or vendor firmware. The helper needs an initial app launch after installation. Android may silently reject an activity start: **launch requested** records the request, not proof that Fully appeared. A later Skylight watchdog takeover is not handled.
 
-Turn startup off to stop automatic launches. Uninstall **Family Hub Startup** in Android app settings to remove the helper, its private settings, and its permissions. Removing it does not restore or change settings previously altered outside this helper. Original Skylight and Fully applications are untouched.
+Turn startup off to stop automatic launches. If you configured the per-app compatibility override, reset it with the command above before uninstalling. Uninstall **Family Hub Startup** in Android app settings to remove the helper, its private settings, and its permissions. Removing it does not otherwise restore settings previously altered outside this helper. Original Skylight and Fully applications are untouched.
 
 Source in this directory is MIT licensed. Downloaded tools retain their own licenses.
 
@@ -68,7 +89,7 @@ Source in this directory is MIT licensed. Downloaded tools retain their own lice
 
 Installed and enabled on 150-CAL, Android 13. Helper overlay and notification permissions allowed. Fully's own Launch on Boot disabled; Fully overlay app-op restored to default. Stock Skylight HOME and watchdog remain intact.
 
-A normal reboot showed the stock calendar first, followed by the helper's boot receiver and its Fully launch 20 seconds later. Fully displayed the correct hub without manual launch and remained foreground. Afterward, no helper service remained running.
+The first reboot observation did not establish unattended boot reliability. A later test found Android 13 deferring the helper's boot broadcast until its process was started. After applying the per-app override above, a second normal reboot passed: Fully displayed the NAS-hosted weekly calendar with events without any manual input or app launch after reboot. Only read-only ADB checks and a screenshot were used during verification. See the [validation record](../docs/VALIDATION.md). Other firmware still requires its own test.
 
 Use `adb install --no-incremental` for this device. The initial default installer selected incremental installation; device restarted during that attempt and reported `kernel_panic,oops:_fatal_exception`. Helper was not installed. Device recovered automatically; standard streamed installation with `--no-incremental` succeeded. Avoid incremental installation on this firmware.
 

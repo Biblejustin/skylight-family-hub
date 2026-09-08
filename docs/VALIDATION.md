@@ -14,11 +14,11 @@ Publication preparation: September 7, 2026 (America/Chicago).
 
 ## Physical display already verified
 
-On one 150-CAL with Android 13: full-screen browser rendering and touch; calendar week/month navigation; person-scoped chores; reward selection; sample earn/spend/persist behavior; Apple shared album rendering; and delayed browser launch after a normal reboot. These checks used the prior Mac-hosted build of the same application changes. Actual household points were not changed by publication tests.
+On one 150-CAL with Android 13: full-screen browser rendering and touch; calendar week/month navigation; person-scoped chores; reward selection; sample earn/spend/persist behavior; and Apple shared album rendering. These checks used the prior Mac-hosted build of the same application changes. Actual household points were not changed by publication tests. The earlier reboot observation was insufficient to establish unattended startup; the corrected boot investigation is recorded below.
 
 ## Linux Docker verification
 
-[GitHub Actions Docker smoke test](https://github.com/Biblejustin/skylight-family-hub/actions/runs/34177967620) passed for application commit `d50a60d7f76c06f348fd9e39a990b05471455aed` on an Ubuntu Linux runner:
+[GitHub Actions Docker smoke test](https://github.com/Biblejustin/skylight-family-hub/actions/runs/34179114077) passed for commit `74d4799939a6e58accfd3b9cb9702d0cef7da0b7` on an Ubuntu Linux runner:
 
 - Image built from the clean repository and installed Linux dependencies.
 - Container started nonroot with read-only application files and writable persistent volumes.
@@ -26,14 +26,28 @@ On one 150-CAL with Android 13: full-screen browser rendering and touch; calenda
 - Empty configuration contained no remote feeds or photo links.
 - Initializer preserved an edited configuration exactly.
 - Both data and background files, plus changed configuration, survived container recreation.
+- With a parent password enabled, anonymous and invalid-token display requests were denied; existing kiosk and parent credentials were accepted. Denied responses did not disclose private feed URLs or reveal a stored token to a caller who had not supplied it.
 
 The first container run exposed missing weather defaults in the empty example. Those defaults were added; the passing run includes that fix.
 
-## Still requires target NAS testing
+## Target NAS migration verification
 
-Docker was unavailable on the preparation Mac; Linux verification ran in GitHub Actions. No deployment onto a household NAS or transfer of private family data is claimed here. ARM64 and individual NAS products have not been tested.
+The source also built and started on a QNAP TS-X80, x86-64, running Linux 5.10, Docker `27.1.2-qnap8`, and Compose `v2.29.1-qnap2`. Container Station's discovered `bin` directory supplied the Docker CLI in the SSH shell; see [NAS setup](NAS-DOCKER.md).
 
-Before retiring another host, verify the actual NAS build, startup, volume permissions, login, calendar sources, photo rendering, migrated balances, and container restart persistence. Then verify Skylight with the laptop disconnected. Firmware differences and other NAS architectures require their own checks.
+- All **47 imported data and background files** matched the frozen source snapshot by SHA-256.
+- The container runs as UID/GID `1000:1000` and became healthy.
+- Existing authentication, private display access, and family records were preserved.
+- Both configured iCal sources reported healthy and returned calendar events.
+- After container recreation, the service became healthy again and all **40 protected files** remained byte-identical: five core data files and 35 background files.
+- The photo API returned a 50-image batch, and the shared-album slideshow rendered on the physical Skylight from the NAS.
+- NAS remote screen navigation, physical person selection, and the rewards interface worked.
+- Fully's saved Start URL was verified against the NAS endpoint and existing display token. The previous Mac listener was stopped, and no ADB reverse tunnel was present.
+
+The Android reboot test exposed change `203704822`, which deferred the helper's boot broadcast until its process started. A per-app `am compat disable` override was accepted on the tested firmware; no APK code or global setting changed. [Android's boot-deferral change](https://developer.android.com/about/versions/13/reference/compat-framework-changes#defer_boot_completed_broadcast_change_id).
+
+The second normal Android reboot passed with this override. Fully opened the NAS-hosted weekly calendar and displayed events without any post-reboot input, manual app launch, or helper opening. Verification used only ADB connection waits, property reads, and a private screenshot; the image is excluded from publication.
+
+Physical removal of the laptop's USB cable and a full NAS power-cycle test are not claimed. Container recreation verifies container recovery and persisted volumes, not whole-NAS boot behavior. Other NAS products, ARM64, and different display firmware still require their own checks.
 
 The refactored public AOA command was not rerun on hardware during publication. The existing display already had ADB enabled; the guide clearly separates that untested refactor from the successful original input sequence.
 

@@ -4,6 +4,21 @@ NAS runs the server. Skylight, a Pi, tablet, or touchscreen opens its display UR
 
 Use a NAS with Docker Engine + Docker Compose v2 and a supported 64-bit Linux CPU: x86-64 or ARM64. Build this source on the target architecture. The image installs Linux versions of Next.js/SWC, sharp, and other dependencies; copying a Mac standalone bundle or `node_modules` will not work. Building needs several GB of free RAM and Internet access. Runtime needs Internet access for calendar feeds and cloud photos.
 
+## QNAP command-line setup
+
+Install and start **Container Station** through the NAS interface. On the tested QNAP, Docker and Compose were installed but absent from the SSH shell's default command path. Locate the installed package instead of hardcoding a storage path:
+
+```sh
+qnap_container_station_path="$(getcfg container-station Install_Path -f /etc/config/qpkg.conf)"
+if [ -n "$qnap_container_station_path" ] && [ -d "$qnap_container_station_path/bin" ]; then
+  export PATH="$qnap_container_station_path/bin:$PATH"
+fi
+docker version
+docker compose version
+```
+
+This changes only the current shell's command path. Use an account authorized to manage Docker on the NAS. If discovery returns no path, check Container Station's installation before continuing. Other NAS vendors provide their own Docker package and shell setup.
+
 ## New installation
 
 On the NAS, clone this customized source and build locally:
@@ -16,6 +31,8 @@ docker compose build
 docker compose up -d
 docker compose ps
 ```
+
+If Git is unavailable on the NAS, open the [public repository](https://github.com/Biblejustin/skylight-family-hub), choose **Code → Download ZIP**, and extract the clean source into a NAS project folder. In the SSH shell, change into the extracted directory containing `compose.yaml`, then run the same Compose commands starting with `docker compose config --quiet`. Build from this source ZIP, not a personal runtime bundle containing Mac dependencies or family data. For a migration, follow the import steps below before the first `docker compose up`.
 
 Open `http://NAS-ADDRESS:3000/editor`. New installs receive empty Calendar, Chores, and Photos screens. **Set a parent password in Settings → Security before adding private feeds.** Authentication starts disabled on an empty data volume; no default password or account is supplied. Migrated installs keep their existing password.
 
@@ -34,7 +51,7 @@ HUB_BIND_ADDRESS=0.0.0.0
 
 ## Persistent storage
 
-Compose creates `family-hub_hub-data` and `family-hub_hub-backgrounds` named volumes:
+With the default project name, Compose creates `family-hub_hub-data` and `family-hub_hub-backgrounds` named volumes. A custom Compose project name changes both prefixes; use that same project name for every build, import, start, update, and backup command.
 
 | Container path | Contents |
 | --- | --- |
@@ -57,7 +74,7 @@ migration/
 
 These folders contain credentials and family records. Keep them out of Git, public shares, and image registries. Do not export only config or re-create members: the whole data directory preserves identifiers, point history, rewards, authentication, and feed links. Source build context excludes this migration folder and all runtime data.
 
-Build the image, then import as the container user **before the first `up`**. The command below refuses a destination with existing data and never logs file contents:
+Build the image, then import as the container user **before the first `up`**. Use new volumes for both data and backgrounds. The command below refuses a destination with existing data and never logs file contents. Its backgrounds copy merges over bundled stock assets, so do not reuse a backgrounds volume containing another installation's uploads; an empty data volume alone does not establish that both destinations are unused.
 
 ```sh
 docker compose build
@@ -101,4 +118,4 @@ The health check confirms the HTTP app and auth-state reader respond; it does no
 
 The repository's Docker smoke-test workflow builds on Linux and checks fresh startup, initializer preservation, and both persistent volumes using synthetic data. It publishes no images. Check that workflow's result before deploying.
 
-Docker is unavailable on the preparation Mac. The actual target-NAS build, volume import, and display check still need to run on the NAS.
+The source has now been built and started on an x86-64 QNAP NAS. Private migration preserved all imported data/background file hashes. The nonroot container remained healthy after recreation, protected files persisted, and existing authentication, calendar feeds, photos, remote controls, and the physical Skylight interface worked with the Mac server stopped. The screen also returned to the NAS calendar after a hands-free Android reboot with its documented per-app compatibility setting. See [Validation record](VALIDATION.md) for completed checks and platform limits. Other NAS products and ARM64 still need their own validation.
