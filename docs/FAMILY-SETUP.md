@@ -70,6 +70,8 @@ Apple documents that [anyone with a Public Website URL can access the album](htt
 
 The display checks the album roughly every ten minutes while its photo module is running. It shows batches of 50 photos, prioritizing five recently added items and filling the rest from older photos. Updated batches take over after the current slideshow pass. At ten seconds each, a 50-photo pass lasts roughly eight minutes twenty seconds; these timings and Apple's processing can delay visibility. Large albums can take tens of seconds to resolve initially.
 
+Apple's image links expire. When reopening Photos after a long pause, the display skips expired cached links and shows a loading message while retrieving a fresh batch. A large album may need tens of seconds again. If the request fails, the display reports that it cannot update and retries automatically.
+
 ## 6. Final household check
 
 With the NAS server running, disconnect the setup computer from the home network. On Skylight, browse calendar dates, complete and undo a test chore, and switch to photos. Reboot Skylight and confirm the startup helper reopens Fully. Verify points still match after a container restart before relying on the setup.

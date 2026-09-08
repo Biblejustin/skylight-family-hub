@@ -4,6 +4,7 @@ import { useEffect, useRef, useMemo } from 'react';
 import type { FullscreenPhotoConfig, MediaListItem, ModuleStyle, TimeFormat } from '@/types/config';
 import { useFetchData } from '@/hooks/useFetchData';
 import { photoSlideshowUrl, FETCH_KEY_REGISTRY } from '@/lib/fetch-keys';
+import { usablePhotoData, type PhotoData } from '@/lib/photo-data';
 import { useMediaRotation } from '@/hooks/useRotatingIndex';
 import { useAuthImageState } from '@/components/display/useAuthImage';
 import { useTZClock } from '@/hooks/useTZClock';
@@ -261,7 +262,9 @@ export default function FullscreenPhotoModule({ config, timezone, fullscreenThem
   // Photo-only configs receive the legacy string[] response; normalize both
   // shapes into MediaListItem so the render path below is uniform.
   const listUrl = isSinglePhoto ? '' : photoSlideshowUrl(config);
-  const [data] = useFetchData<string[] | MediaListItem[]>(listUrl, FETCH_KEY_REGISTRY['fullscreen-photo']?.ttlMs ?? 600_000);
+  const refreshMs = FETCH_KEY_REGISTRY['fullscreen-photo']?.ttlMs ?? 600_000;
+  const [fetched, error, updatedAt] = useFetchData<PhotoData>(listUrl, refreshMs);
+  const data = usablePhotoData(fetched, config.source, updatedAt, refreshMs);
   const items = useMemo<MediaListItem[]>(
     () => (data ?? []).map((entry) => (typeof entry === 'string' ? { url: entry, type: 'image' as const } : entry)),
     [data],
@@ -354,10 +357,19 @@ export default function FullscreenPhotoModule({ config, timezone, fullscreenThem
     return (
       <div
         ref={containerRef}
+        role="status"
+        aria-label={error ? t('common.notUpdating') : t('photo-slideshow.loading')}
         className="w-full h-full flex items-center justify-center"
         style={themeGround}
       >
-        <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: theme.border, borderTopColor: theme.text }} />
+        {error ? (
+          <p style={{ color: theme.textMuted }}>{t('common.notUpdating')}</p>
+        ) : (
+          <div className="flex flex-col items-center gap-3" style={{ color: theme.textMuted }}>
+            <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: theme.border, borderTopColor: theme.text }} />
+            <p>{t('photo-slideshow.loading')}</p>
+          </div>
+        )}
       </div>
     );
   }

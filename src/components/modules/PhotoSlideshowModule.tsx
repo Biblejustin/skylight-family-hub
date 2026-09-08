@@ -7,6 +7,7 @@ import ModuleWrapper from './ModuleWrapper';
 import { moduleGate } from './ModuleStates';
 import { useFetchData } from '@/hooks/useFetchData';
 import { photoSlideshowUrl, FETCH_KEY_REGISTRY } from '@/lib/fetch-keys';
+import { usablePhotoData, type PhotoData } from '@/lib/photo-data';
 import { useMediaRotation } from '@/hooks/useRotatingIndex';
 import { useAuthImageState } from '@/components/display/useAuthImage';
 import VideoLayer from './shared/VideoLayer';
@@ -65,7 +66,9 @@ export default function PhotoSlideshowModule({ config, style, screenId, moduleId
   // Photo-only configs receive the legacy string[] response; normalize both
   // shapes into MediaListItem so the render path below is uniform.
   const listUrl = photoSlideshowUrl(config);
-  const [data, error] = useFetchData<string[] | MediaListItem[]>(listUrl, config.refreshIntervalMs ?? DEFAULT_REFRESH_MS);
+  const refreshMs = config.refreshIntervalMs ?? DEFAULT_REFRESH_MS;
+  const [fetched, error, updatedAt] = useFetchData<PhotoData>(listUrl, refreshMs);
+  const data = usablePhotoData(fetched, config.source, updatedAt, refreshMs);
   const items = useMemo<MediaListItem[]>(
     () => (data ?? []).map((entry) => (typeof entry === 'string' ? { url: entry, type: 'image' as const } : entry)),
     [data],
