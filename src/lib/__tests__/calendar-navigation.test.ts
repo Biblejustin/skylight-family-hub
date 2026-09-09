@@ -19,6 +19,21 @@ describe('calendar browsing dates', () => {
     expect(moveCalendarDate(next, 'week', -1)).toEqual(new Date(2026, 9, 28));
   });
 
+  it('moves one day across leap days and year boundaries', () => {
+    expect(moveCalendarDate(new Date(2028, 1, 28, 19), 'day', 1)).toEqual(new Date(2028, 1, 29));
+    expect(moveCalendarDate(new Date(2028, 1, 29), 'day', 1)).toEqual(new Date(2028, 2, 1));
+    expect(moveCalendarDate(new Date(2027, 0, 1), 'day', -1)).toEqual(new Date(2026, 11, 31));
+  });
+
+  it('requests the selected day with timezone padding and a stable URL across its hours', () => {
+    const day = new Date(2026, 8, 15);
+    const url = new URL(calendarBrowseUrl(day, 'day', 'sunday'), 'http://hub');
+    expect(new Date(url.searchParams.get('timeMin')!)).toEqual(new Date(2026, 8, 14));
+    expect(new Date(url.searchParams.get('timeMax')!)).toEqual(new Date(2026, 8, 17));
+    expect(calendarBrowseUrl(new Date(2026, 8, 15, 23), 'day', 'monday')).toBe(calendarBrowseUrl(day, 'day', 'sunday'));
+    expect(calendarBrowseUrl(addDays(day, 1), 'day')).not.toBe(calendarBrowseUrl(day, 'day'));
+  });
+
   it('requests a full six-row month including spillover cells and zone padding', () => {
     const url = new URL(calendarBrowseUrl(new Date(2026, 4, 15), 'month', 'sunday'), 'http://hub');
     const start = new Date(url.searchParams.get('timeMin')!);

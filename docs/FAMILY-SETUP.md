@@ -22,7 +22,7 @@ The tested Google route uses secret iCal links. No Google Cloud project or Apple
 3. Open **Integrate calendar** and copy **Secret address in iCal format**. Do not use the embed URL or the public address for a private calendar. Some managed accounts hide this option.
 4. In Family Hub **Settings → Calendar**, add an iCal feed. Give it a friendly name and color, paste the URL, enable it, and save.
 5. Repeat for other calendars.
-6. Open Calendar on the display and confirm a known event and its time. Try Week, Month, previous/next, and Today.
+6. Open Calendar on the display and confirm a known event and its time. Try Day, Week, Month, previous/next, and Today. In Month, tap a date to open that day's schedule; Month returns to the month containing the selected date. Previous/next moves by the selected view, and Today returns to the current date.
 
 [Google's secret-address instructions](https://support.google.com/calendar/answer/37648?hl=en) explain how to locate and reset a feed. Anyone with its secret URL can read the events; public calendar sharing is not required. Keep the feed and backups private.
 
@@ -69,6 +69,8 @@ Upload selected photos through the editor's background/media controls. Set the P
 Apple documents that [anyone with a Public Website URL can access the album](https://support.apple.com/en-ca/guide/iphone/-ipha8f8fc3c5/ios). This integration uses that website and requires no Apple account on the NAS. It does not provide private Apple account photo sync.
 
 The display checks the album roughly every ten minutes while its photo module is running. It shows batches of 50 photos, prioritizing five recently added items and filling the rest from older photos. Updated batches take over after the current slideshow pass. At ten seconds each, a 50-photo pass lasts roughly eight minutes twenty seconds; these timings and Apple's processing can delay visibility. Large albums can take tens of seconds to resolve initially.
+
+Enable **Shuffle order** in the fullscreen Photos module to randomize playback of each batch. Recent photos remain included, but no longer always appear first. Each pass reshuffles the order.
 
 Apple's image links expire. When reopening Photos after a long pause, the display skips expired cached links and shows a loading message while retrieving a fresh batch. A large album may need tens of seconds again. If the request fails, the display reports that it cannot update and retries automatically.
 

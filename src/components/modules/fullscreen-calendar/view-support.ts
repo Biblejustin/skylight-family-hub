@@ -55,8 +55,10 @@ export interface CalendarViewProps {
   scale: CalendarScale;
   today: Date;
   now: Date;
-  /** Browsed date for week/month geometry only; today/now remain the real wall clock. */
+  /** Browsed date for day/week/month geometry; today/now remain the real wall clock. */
   viewDate?: Date;
+  /** Optional month-cell activation, supplied by the interactive display wrapper. */
+  onSelectDate?: (date: Date) => void;
   timeFormat?: TimeFormat;
   weather?: CalendarWeather;
   /** Sources whose feed is failing; list-view rows add a "saved" time suffix. */

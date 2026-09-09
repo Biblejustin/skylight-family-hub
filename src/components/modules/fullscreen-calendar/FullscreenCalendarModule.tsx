@@ -173,8 +173,10 @@ export interface FullscreenCalendarModuleProps {
   calendarSetup?: CalendarSetupNeed;
   /** Attached only while Settings > Calendar > People is non-empty (see buildModuleProps). */
   people?: CalendarPerson[];
-  /** Browsed week/month; other views keep following the real wall clock. */
+  /** Browsed day/week/month; other views keep following the real wall clock. */
   viewDate?: Date;
+  /** Opens a month-grid date in the interactive day view. */
+  onSelectDate?: (date: Date) => void;
   /** Optional local navigation controls, supplied by the display wrapper. */
   navigation?: ReactNode;
 }
@@ -195,6 +197,7 @@ export default function FullscreenCalendarModule({
   calendarSetup,
   people,
   viewDate,
+  onSelectDate,
   navigation,
 }: FullscreenCalendarModuleProps) {
   const t = useTranslate('modules');
@@ -208,7 +211,7 @@ export default function FullscreenCalendarModule({
   // midnight, so memos and view props keyed on it survive the 60s ticks.
   const todayMs = startOfDay(now).getTime();
   const today = useMemo(() => new Date(todayMs), [todayMs]);
-  const browsableView = config.view === 'schedule' || config.view === 'month-grid';
+  const browsableView = config.view === 'schedule' || config.view === 'month-grid' || config.view === 'day-timeline';
   const displayedMs = browsableView && viewDate ? startOfDay(viewDate).getTime() : todayMs;
   const displayedDate = useMemo(() => new Date(displayedMs), [displayedMs]);
   const hasNavigation = navigation != null && navigation !== false;
@@ -302,8 +305,8 @@ export default function FullscreenCalendarModule({
   );
 
   const viewProps = useMemo<CalendarViewProps>(
-    () => ({ events, config, scale, today, now, viewDate: browsableView ? displayedDate : undefined, timeFormat, weather, timezone, failingSourceIds, people, extras }),
-    [events, config, scale, today, now, browsableView, displayedDate, timeFormat, weather, timezone, failingSourceIds, people, extras],
+    () => ({ events, config, scale, today, now, viewDate: browsableView ? displayedDate : undefined, onSelectDate, timeFormat, weather, timezone, failingSourceIds, people, extras }),
+    [events, config, scale, today, now, browsableView, displayedDate, onSelectDate, timeFormat, weather, timezone, failingSourceIds, people, extras],
   );
   const hasEvents = events.length > 0;
   // Views with something to say on an empty feed: the family grid and free
@@ -328,7 +331,7 @@ export default function FullscreenCalendarModule({
   });
   const neverLoaded = status.kind === 'cantLoad';
   // A successfully loaded empty range still needs its date grid and controls.
-  // A missing/failed fetch must never look like a confirmed free week/month.
+  // A missing/failed fetch must never look like a confirmed free day/week/month.
   const showEmptyGrid = hasNavigation && browsableView
     && calendarStatus?.updatedAt != null && status.kind === 'ok';
 
@@ -662,6 +665,12 @@ const cssTokens = `
 .fsc-content {
   position: relative;
   overflow: hidden;
+}
+
+/* A keyboard-selected month date remains visible over custom day colors. */
+.fsc-month-day:focus-visible {
+  outline: 3px solid var(--cal-accent);
+  outline-offset: -3px;
 }
 
 /* Tap-to-open event details enabled */

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ComponentProps, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ComponentProps, type CSSProperties, type ReactNode } from 'react';
 import { startOfDay } from 'date-fns';
 import { useTZClock } from '@/hooks/useTZClock';
 import { useFetchData } from '@/hooks/useFetchData';
@@ -28,20 +28,25 @@ function InteractiveCalendar(props: Props) {
   const today = useMemo(() => new Date(todayMs), [todayMs]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedView, setSelectedView] = useState<CalendarBrowseView | null>(null);
-  const view = selectedView ?? (props.config.view === 'month-grid' ? 'month' : 'week');
+  const view = selectedView ?? (props.config.view === 'month-grid' ? 'month' : props.config.view === 'day-timeline' ? 'day' : 'week');
   const viewDate = selectedDate ?? today;
   const config = useMemo(() => ({
     ...props.config,
-    view: view === 'month' ? 'month-grid' as const : 'schedule' as const,
+    view: view === 'month' ? 'month-grid' as const : view === 'day' ? 'day-timeline' as const : 'schedule' as const,
     scheduleDaysToShow: 7,
     scheduleStartAnchor: 'start-of-week' as const,
   }), [props.config, view]);
   const url = props.calendarSetup === 'noSources'
     ? '' : calendarBrowseUrl(viewDate, view, config.startDay);
   const navigate = (direction: -1 | 1) => setSelectedDate(date => moveCalendarDate(date ?? today, view, direction));
+  const selectDay = useCallback((date: Date) => {
+    setSelectedDate(startOfDay(date));
+    setSelectedView('day');
+  }, []);
   const navigation = (
-    <nav aria-label="Calendar navigation" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+    <nav aria-label="Calendar navigation" data-swipe-ignore style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, flexShrink: 0 }}>
       <div role="group" aria-label="Calendar view" style={{ display: 'flex', gap: 3, marginRight: 6 }}>
+        <NavButton pressed={view === 'day'} onClick={() => setSelectedView('day')}>Day</NavButton>
         <NavButton pressed={view === 'week'} onClick={() => setSelectedView('week')}>Week</NavButton>
         <NavButton pressed={view === 'month'} onClick={() => setSelectedView('month')}>Month</NavButton>
       </div>
@@ -52,7 +57,7 @@ function InteractiveCalendar(props: Props) {
   );
   // Remount only the range reader, so a response or last-good data for one
   // month can never be presented as a successful fetch of a different month.
-  return <CalendarRange key={`${props.timezone}:${url}`} {...props} config={config} viewDate={viewDate} navigation={navigation} url={url} />;
+  return <CalendarRange key={`${props.timezone}:${url}`} {...props} config={config} viewDate={viewDate} onSelectDate={selectDay} navigation={navigation} url={url} />;
 }
 
 function CalendarRange({ url, ...props }: Props & { url: string }) {

@@ -16,7 +16,7 @@ import type { CalendarViewProps } from './view-support';
 import { useContainerHeight } from './shared-time-grid';
 import Glyph, { GlyphPrefix } from '@/components/ui/Glyph';
 
-export function MonthGridView({ events, timezone, config, scale, today, now, viewDate }: CalendarViewProps) {
+export function MonthGridView({ events, timezone, config, scale, today, now, viewDate, onSelectDate }: CalendarViewProps) {
   const t = useTranslate('modules');
   const locale = useFormattingLocale();
   const fontSize = scale.bu * scale.typoMul * scale.densityMul;
@@ -133,8 +133,21 @@ export function MonthGridView({ events, timezone, config, scale, today, now, vie
               )}
               <div
                 role="gridcell"
+                className={onSelectDate ? 'fsc-month-day' : undefined}
+                tabIndex={onSelectDate ? 0 : undefined}
+                data-swipe-ignore={onSelectDate ? '' : undefined}
                 aria-label={t('fullscreen-calendar.ariaLabels.monthCell', { date: formatDateSync(day, 'MMMM d', { locale }), count: dayEvents.length })}
+                onClick={onSelectDate ? (event) => { event.stopPropagation(); onSelectDate(day); } : undefined}
+                onKeyDown={onSelectDate ? (event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onSelectDate(day);
+                  }
+                } : undefined}
                 style={mergeCellDecor({
+                  cursor: onSelectDate ? 'pointer' : undefined,
+                  touchAction: onSelectDate ? 'manipulation' : undefined,
                   borderRight: dow < 6 ? '1px solid var(--cal-border-subtle)' : undefined,
                   borderBottom: '1px solid var(--cal-border-subtle)',
                   borderLeft: isToday && showTodayMarker ? '2px solid var(--cal-accent)' : undefined,

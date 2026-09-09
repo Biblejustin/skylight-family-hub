@@ -115,6 +115,39 @@ describe('fullscreen views bucket events by the display timezone', () => {
     expect(pill.style.height).toBe('65px');
   });
 
+  it('browsed day uses selected-date timezone and midnight segments while keeping real today separate', () => {
+    const overnight: CalendarEvent = {
+      id: 'overnight', title: 'Overnight trip', allDay: false,
+      start: '2026-08-24T11:00:00Z', end: '2026-08-24T14:00:00Z',
+    };
+    const allDay: CalendarEvent = {
+      id: 'holiday', title: 'Selected day holiday', allDay: true,
+      start: '2026-08-25', end: '2026-08-26',
+    };
+    const preceding: CalendarEvent = {
+      id: 'preceding', title: 'Previous day event', allDay: false,
+      start: '2026-08-23T22:00:00Z', end: '2026-08-23T23:00:00Z',
+    };
+    const { container } = render(
+      <DayTimelineView
+        events={[event, overnight, allDay, preceding]} timezone={TZ}
+        config={{ ...config, view: 'day-timeline', dayHourStart: 0, dayHourEnd: 24, hourWindow: 'rolling', showNowLine: true, dimPastEvents: true }}
+        scale={scale} today={new Date(2026, 7, 24)} now={new Date(2026, 7, 24, 10)} viewDate={today}
+      />,
+      { wrapper: Wrapper },
+    );
+    const early = container.querySelector('[data-event-id="nz"]') as HTMLElement;
+    const carryover = container.querySelector('[data-event-id="overnight"]') as HTMLElement;
+    expect(early.style.top).toBe('130px');
+    expect(early.style.opacity).toBe('1');
+    expect(carryover.style.top).toBe('0px');
+    expect(carryover.style.height).toBe('130px');
+    expect(container.querySelector('[data-event-id="holiday"]')).not.toBeNull();
+    expect(container.querySelector('[data-event-id="preceding"]')).toBeNull();
+    expect(container.querySelector('[aria-label^="Current time:"]')).toBeNull();
+    expect(container.querySelector('[data-rolling-window]')).toBeNull();
+  });
+
   it('month-grid places the event in the 25th, not the 24th', () => {
     const { container } = render(
       <MonthGridView events={[event]} timezone={TZ} config={{ ...config, view: 'month-grid' }} scale={scale} today={today} now={now} />,
