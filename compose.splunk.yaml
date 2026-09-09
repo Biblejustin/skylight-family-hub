@@ -1,0 +1,24 @@
+# Optional Docker-to-Splunk forwarding. Requires Docker Compose 2.24.4+.
+# Enable through COMPOSE_FILE in a private .env; see docs/NAS-DOCKER.md.
+services:
+  family-hub:
+    # Replace json-file options instead of merging incompatible max-size/max-file.
+    logging: !override
+      driver: splunk
+      options:
+        splunk-url: "${SPLUNK_HEC_URL:?Set SPLUNK_HEC_URL in the private .env}"
+        splunk-token: "${SPLUNK_HEC_TOKEN:?Set SPLUNK_HEC_TOKEN in the private .env}"
+        splunk-index: "skylight"
+        splunk-source: "skylight-family-hub"
+        splunk-sourcetype: "skylight:docker"
+        splunk-format: "json"
+        splunk-insecureskipverify: "${SPLUNK_HEC_INSECURE_SKIP_VERIFY:-false}"
+        # Let the calendar start while Splunk is unavailable.
+        splunk-verify-connection: "false"
+        tag: "{{.Name}}"
+        mode: "non-blocking"
+        max-buffer-size: "4m"
+        cache-disabled: "false"
+        cache-max-size: "10m"
+        cache-max-file: "3"
+        cache-compress: "true"

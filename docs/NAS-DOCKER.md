@@ -116,6 +116,49 @@ Use Docker/NAS controls for restart and recovery. The upstream in-app OS updater
 
 The health check confirms the HTTP app and auth-state reader respond; it does not prove that external calendar/photo services are reachable. `restart: unless-stopped` recovers exited processes; Docker does not automatically restart an otherwise running container solely because it becomes unhealthy. Inspect status with `docker compose ps` and recent logs with `docker compose logs --tail=100 family-hub` before restarting.
 
+## Optional Splunk logging
+
+`compose.splunk.yaml` forwards the container's stdout/stderr to Splunk HTTP Event Collector (HEC). It requires Docker Compose **2.24.4 or newer**: `!override` replaces the base `json-file` options. The app image and data volumes stay the same. Existing historical Docker logs are not imported.
+
+In Splunk, create an index named `skylight` and a dedicated HEC token restricted to that index, with indexer acknowledgment disabled. Enable HEC and make its HTTPS port reachable from the Docker host. For Splunk on the same NAS, Docker can use its published loopback port, such as `https://127.0.0.1:8088`; the logging driver runs on the host, so a Compose service name is not sufficient.
+
+Add these settings to the existing private `.env` beside `compose.yaml`, preserving its other values:
+
+```dotenv
+COMPOSE_FILE=compose.yaml:compose.splunk.yaml
+SPLUNK_HEC_URL=https://127.0.0.1:8088
+SPLUNK_HEC_TOKEN=replace-with-dedicated-hec-token
+```
+
+If an existing `compose.override.yaml` selects your deployed image or other local settings, use `COMPOSE_FILE=compose.yaml:compose.override.yaml:compose.splunk.yaml` instead. Setting `COMPOSE_FILE` makes ordinary update/recreate commands retain forwarding and existing overrides. Keep the same project name as before. `.env` is excluded from Git and image builds; restrict it with `chmod 600 .env`. The HEC token belongs in logging configuration, not the app's environment. Full `docker inspect` and resolved `docker compose config` output contain it; use the limited commands below.
+
+TLS certificate validation is enabled by default. For a private CA, add `splunk-capath` under the overlay's logging options with an absolute path to a CA PEM file readable by the **NAS Docker daemon**. Add `splunk-caname` if the certificate's DNS name differs from the URL host; the name must match a certificate SAN. A legacy Splunk certificate containing only a Common Name cannot pass modern hostname validation. For that legacy certificate on **same-host loopback HTTPS only**, the explicit `.env` opt-in `SPLUNK_HEC_INSECURE_SKIP_VERIFY=true` skips certificate validation while retaining encryption. Use a valid certificate for remote endpoints. See [Docker's Splunk driver options](https://docs.docker.com/engine/logging/drivers/splunk/).
+
+Validate and recreate only the calendar container; no image rebuild is needed:
+
+```sh
+docker compose config --quiet
+docker compose up -d --no-deps --no-build family-hub
+docker compose ps
+hub_container_id="$(docker compose ps -q family-hub)"
+docker inspect --format '{{.HostConfig.LogConfig.Type}}' "$hub_container_id"
+docker compose logs --tail=20 family-hub
+```
+
+The driver should report `splunk`, and local logs should remain readable. In Splunk Search, confirm fresh startup messages after allowing a few seconds for delivery:
+
+```spl
+index=skylight source="skylight-family-hub" sourcetype="skylight:docker" earliest=-15m
+| spath path=line output=message
+| table _time host message
+```
+
+Forwarding uses a 4 MB nonblocking buffer so logging does not stall the calendar. Startup does not require Splunk to be online. The local `docker logs` cache rotates at 10 MB across three files. Buffers can overflow during outages; the cache is not a durable replay queue. A healthy calendar does not prove ingestion succeeded. See [delivery modes](https://docs.docker.com/engine/logging/configure/) and [dual logging limits](https://docs.docker.com/engine/logging/dual-logging/).
+
+To remove forwarding, remove `compose.splunk.yaml` from `COMPOSE_FILE`, retaining the base file and any existing override. Run `docker compose config --quiet` and `docker compose up -d --no-deps --no-build family-hub` again, then confirm the driver is `json-file`. Revoke the dedicated HEC token and remove its `.env` settings when no longer needed. This leaves application data and indexed events intact.
+
+## Validation
+
 The repository's Docker smoke-test workflow builds on Linux and checks fresh startup, initializer preservation, and both persistent volumes using synthetic data. It publishes no images. Check that workflow's result before deploying.
 
 The source has now been built and started on an x86-64 QNAP NAS. Private migration preserved all imported data/background file hashes. The nonroot container remained healthy after recreation, protected files persisted, and existing authentication, calendar feeds, photos, remote controls, and the physical Skylight interface worked with the Mac server stopped. The screen also returned to the NAS calendar after a hands-free Android reboot with its documented per-app compatibility setting. See [Validation record](VALIDATION.md) for completed checks and platform limits. Other NAS products and ARM64 still need their own validation.
