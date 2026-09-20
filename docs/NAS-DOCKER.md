@@ -116,6 +116,25 @@ Use Docker/NAS controls for restart and recovery. The upstream in-app OS updater
 
 The health check confirms the HTTP app and auth-state reader respond; it does not prove that external calendar/photo services are reachable. `restart: unless-stopped` recovers exited processes; Docker does not automatically restart an otherwise running container solely because it becomes unhealthy. Inspect status with `docker compose ps` and recent logs with `docker compose logs --tail=100 family-hub` before restarting.
 
+### After a NAS IP or subnet change
+
+A healthy container can still have its published port bound to the NAS's old address. From the screen's network, confirm the NAS hostname resolves to its new LAN address. Between VLANs, allow DNS resolution and TCP access to the configured `HUB_PORT` on that address.
+
+In the existing NAS project directory, make a private backup of `.env`, then edit only `HUB_BIND_ADDRESS` to the NAS's new LAN IP. Preserve `HUB_PORT`, the Compose project name, `COMPOSE_FILE`, image overrides, and any Splunk settings. The Docker bind address is an IP; use the stable DNS hostname in browser links.
+
+```sh
+umask 077
+cp .env ".env.before-network-$(date +%Y%m%dT%H%M%S)"
+# Edit HUB_BIND_ADDRESS in .env before continuing.
+docker compose config --quiet
+docker compose up -d --no-deps --no-build family-hub
+docker compose ps
+```
+
+From a client on the screen's network, test `http://NAS_HOST:HUB_PORT/api/auth/status`, substituting your hostname and configured port. Expect JSON with authentication still enabled; a client without a parent session normally reports `authenticated: false`. Then log in to `/editor` and verify the display works.
+
+In Fully Kiosk's saved **Start URL**, replace the old host with the NAS's DNS hostname while retaining the existing port, `/display` path, and private token query. Save and load the Start URL. The Android startup helper only opens Fully, so no helper rebuild is needed. Keep the saved display link private.
+
 ## Optional Splunk logging
 
 `compose.splunk.yaml` forwards the container's stdout/stderr to Splunk HTTP Event Collector (HEC). It requires Docker Compose **2.24.4 or newer**: `!override` replaces the base `json-file` options. The app image and data volumes stay the same. Existing historical Docker logs are not imported.
